@@ -1,0 +1,10 @@
+# Event Horizon (이벤트 호라이즌)
+
+> 실시간 글로벌 AI 시그널 자동 수집·온디바이스 LLM 요약, 주요 인물 X(트위터) 타임라인 모아보기, Seed RSI·AGI·ASI 중위 도달 예측 시계 및 거시경제 전환 지표를 관측하는 한국어 인텔리전스 관측소입니다.
+
+## 주요 경로
+- `/`: 관측 요약 (Seed RSI → AGI → Full RSI → ASI 시계, 실시간 검증 시그널, 최신 프론티어 모델 레지스트리)
+- `/x-feed`: 개인 X API v2 Bearer Token(HttpOnly 쿠키 저장) 기반 S~F 등급 24인 타임라인 모아보기
+- `/api/live-intel`: OpenAI, Google DeepMind, Hugging Face Daily Papers, arXiv, Hacker News, OpenRouter 모델 레지스트리 실시간 집계 JSON API
+- `/api/summarize`: 원문 초록 한국어 2문장 정제 요약 API
+- `/feed.xml`: 실시간 검증 시그널 한국어 RSS 2.0 피드

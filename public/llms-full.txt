@@ -1,0 +1,17 @@
+# Event Horizon — 기술 아키텍처 및 관측 방법론 명세
+
+Event Horizon은 기술적 특이점(Singularity), 초기 재귀개선(Seed RSI), 일반인공지능(AGI), 완전 자율 재귀개선(Full RSI), 초인공지능(ASI)에 이르는 경로를 실증 벤치마크와 실시간 연구·생태계 시그널로 추적하는 웹 관측소입니다.
+
+## 1. 예측 시계 및 선후 관계 모델 (Seed RSI → AGI → Full RSI → ASI)
+- **Seed RSI (초기 재귀개선 루프)**: 코딩·커널 최적화·합성데이터 생성·보상 검증(RLVR) 등 디지털 폐쇄 루프에서 AI가 차세대 연구 속도를 가속하는 선행 임계점. 범용 AGI보다 먼저 점화되어 AGI 도달을 견인합니다.
+- **AGI (일반인공지능)**: 숙련된 인간 지식근로자의 주 40시간 범용 인지 과업(METR 50% 자율 과업 지평 40시간 기준)을 중간 교정 없이 완수하는 시점.
+- **Full RSI (완전 자율 재귀개선)**: 인간 개입 없이 신규 아키텍처 발명 및 대규모 클러스터 본학습·검증 전체 주기의 과반을 단독 수행하는 시점(초장기 연구 지평 1,000시간 및 물리 연산 병목 반영).
+- **ASI (초인공지능)**: 과학·수리·공학 전 영역에서 인류 최고 집단지성을 질적으로 초월하는 시점.
+
+## 2. 무중단 실시간 인텔리전스 및 온디바이스 LLM 요약
+- **공공 API 수집**: OpenAI RSS, Google DeepMind RSS, Hugging Face Daily Papers, arXiv (cs.AI/CL/LG), Hacker News, OpenRouter Live Frontier Model Registry를 5분 주기로 자동 수집합니다.
+- **하이브리드 요약**: 브라우저 내장 AI(Gemini Nano), 로컬 데스크톱 Ollama, WebGPU/WASM 경량 모델(Qwen2.5-0.5B-Instruct) 및 서버 자동 번역을 결합해 한국어 2문장 요약을 생성합니다.
+- **개인 X API 연동 (`/x-feed`)**: 사용자가 입력한 X API v2 Bearer Token을 브라우저 `HttpOnly` 보안 쿠키에만 보관하여 S~F 등급 24인 발신원의 최신 포스트를 통합 조회합니다.
+
+## 3. PWA 독립 실행 지원
+- `/manifest.webmanifest` 및 `/sw.js` 기반으로 데스크톱(Windows, macOS) 및 모바일(iOS, Android) 환경에서 독립형 애플리케이션(Standalone PWA) 설치를 지원합니다.

@@ -1,23 +1,74 @@
 {
   "name": "pstui",
-  "version": "0.1.0",
-  "private": true,
+  "version": "0.2.0",
+  "description": "Modern Liquid Glass Web Design System on Next.js 16, Tailwind CSS v4, and DaisyUI 5",
+  "license": "Apache-2.0",
+  "author": "pstui Contributors",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pstui/pstui.git"
+  },
+  "bugs": {
+    "url": "https://github.com/pstui/pstui/issues"
+  },
+  "homepage": "https://github.com/pstui/pstui#readme",
+  "keywords": [
+    "human-interface",
+    "liquid-glass",
+    "daisyui",
+    "tailwind",
+    "design-system",
+    "nextjs",
+    "react"
+  ],
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "check": "eslint && next build",
+    "setup": "node setup.mjs",
+    "export": "node setup.mjs --export",
+    "sync": "node setup.mjs --sync",
+    "update": "node setup.mjs --update",
+    "diff": "node setup.mjs --diff",
+    "manifest": "node setup.mjs --manifest"
+  },
+  "bin": {
+    "pstui": "./setup.mjs"
+  },
+  "exports": {
+    ".": "./components/ui/index.ts",
+    "./ui": "./components/ui/index.ts",
+    "./components/*": "./components/*",
+    "./layout/*": "./components/layout/*",
+    "./context/*": "./context/*",
+    "./providers/*": "./components/providers/*",
+    "./lib/*": "./lib/*",
+    "./styles/*": "./styles/*",
+    "./tokens": "./styles/pstui-tokens.css",
+    "./manifest": "./pstui.manifest.json"
+  },
+  "engines": {
+    "node": ">=20.0.0"
   },
   "dependencies": {
+    "@tanstack/react-virtual": "^3.14.22",
+    "firebase": "^13.1.0",
     "next": "16.4.3",
+    "next-view-transitions": "^0.3.5",
+    "nuqs": "^2.10.2",
     "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react-dom": "19.3.0",
+    "server-only": "^0.0.1"
   },
   "devDependencies": {
+    "@next/bundle-analyzer": "^16.4.3",
     "@tailwindcss/turbopack": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "daisyui": "^5.7.50",
     "eslint": "^9",
     "eslint-config-next": "16.4.3",
     "tailwindcss": "^4",

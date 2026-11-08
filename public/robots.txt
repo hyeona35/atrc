@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /api/x-feed
+
+Sitemap: https://atrc.hyeona3.com/sitemap.xml

@@ -1,0 +1,2 @@
+# Event Horizon — No programmatic ad networks enabled
+# https://iabtechlab.com/ads-txt/
