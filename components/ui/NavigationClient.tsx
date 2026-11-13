@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import {
   IconChevronDown,
+  IconLogoATRC,
 } from "./icons";
 
 export interface TabBarItem {
@@ -84,18 +85,19 @@ export function TabBar({
           ? { height: "var(--tabbar-height)" }
           : {
               height: "var(--tabbar-height)",
-              bottom: "calc(12px + env(safe-area-inset-bottom, 0px))",
-              width: "min(32rem, calc(100% - 2rem))",
-              left: 0,
-              right: 0,
+              bottom: "calc(12px + var(--safe-bottom, 0px))",
+              width:
+                "min(32rem, calc(100% - 1.5rem - var(--safe-left, 0px) - var(--safe-right, 0px)))",
+              left: "var(--safe-left, 0px)",
+              right: "var(--safe-right, 0px)",
               marginInline: "auto",
               transformOrigin: "bottom center",
             }
       }
-      className={`dock liquid-glass rounded-3xl transition-all duration-300 ease-out px-2 ${
+      className={`liquid-glass rounded-3xl flex flex-row items-center justify-around gap-1 px-1.5 py-1.5 transition-all duration-300 ease-out touch-manipulation ${
         inlinePreview
           ? "relative w-full z-10"
-          : "fixed inset-x-0 max-w-lg mx-auto md:hidden z-30 box-border"
+          : "fixed max-w-lg mx-auto md:hidden z-30 box-border"
       } ${
         isMinimized && !inlinePreview
           ? "scale-90 translate-y-2 opacity-90"
@@ -111,23 +113,23 @@ export function TabBar({
             onClick={() => onSelect(item.id)}
             aria-current={isActive ? "page" : undefined}
             style={!isActive ? { color: "var(--label-secondary)" } : undefined}
-            className={`!mb-0 pst-press rounded-xl flex flex-col items-center justify-center gap-0.5 relative transition-all duration-300 ease-out min-w-0 flex-1 h-full ${
+            className={`min-h-11 min-w-0 flex-1 h-full px-1 py-1 rounded-2xl flex flex-col items-center justify-center gap-0.5 relative transition-all duration-200 ease-out cursor-pointer active:scale-95 ${
               isActive
-                ? "dock-active text-accent-primary bg-primary/12 font-semibold"
-                : "hover:text-base-content hover:bg-base-content/5 font-semibold"
+                ? "text-accent-primary bg-primary/14 border border-primary/20 font-semibold shadow-2xs"
+                : "hover:text-base-content hover:bg-base-content/5 border border-transparent font-semibold"
             }`}
           >
             {(item.icon || item.activeIcon) && (
-              <span className="dock-icon shrink-0">
+              <span className="shrink-0 leading-none">
                 {isActive ? (item.activeIcon ?? item.icon) : item.icon}
               </span>
             )}
-            <span className="dock-label text-[11px] leading-tight font-semibold truncate max-w-full text-center px-0.5">
+            <span className="dock-label text-[11px] leading-none font-semibold whitespace-nowrap truncate max-w-full text-center px-0.5">
               {item.label}
             </span>
             {item.badge !== undefined && (
               <span
-                className={`badge badge-xs absolute top-1.5 end-2 font-bold ${
+                className={`badge badge-xs absolute top-1 end-1.5 font-bold ${
                   isActive ? "badge-primary" : "badge-neutral"
                 }`}
               >
@@ -203,11 +205,18 @@ export function Sidebar({
         width: isCollapsed
           ? "var(--sidebar-collapsed-width)"
           : "var(--sidebar-width)",
+        ...(inlinePreview
+          ? {}
+          : {
+              top: "calc(14px + var(--safe-top, 0px))",
+              bottom: "calc(14px + var(--safe-bottom, 0px))",
+              insetInlineStart: "calc(14px + var(--safe-left, 0px))",
+            }),
       }}
       className={`liquid-glass pst-sidebar-shadow transition-all duration-300 ease-out flex flex-col select-none ${
         inlinePreview
           ? "relative rounded-3xl h-[420px] m-1"
-          : "hidden md:flex fixed top-3.5 bottom-3.5 start-3.5 z-30 rounded-3xl"
+          : "hidden md:flex fixed z-30 rounded-3xl"
       } ${className}`}
     >
       {/* Top Leading Workspace Header (App Bar retains primary collapse button per Requirement 1) */}
@@ -230,14 +239,10 @@ export function Sidebar({
             }}
             title={`${brandLabel} 홈으로 이동`}
             aria-label={`${brandLabel} 홈으로 이동`}
-            className="flex items-center gap-2.5 min-w-0 ps-1 cursor-pointer pst-press rounded-xl hover:opacity-85 transition-opacity focus-visible:outline-2 focus-visible:outline-primary"
+            className="flex items-center gap-2.5 min-w-0 ps-1 cursor-pointer pst-press rounded-xl hover:opacity-90 transition-opacity focus-visible:outline-2 focus-visible:outline-primary"
           >
-            <span
-              className="h-3 w-3 rounded-full shrink-0 shadow-xs"
-              style={{ background: "var(--gradient-brand)" }}
-              aria-hidden="true"
-            />
-            <span className="text-sm font-bold tracking-tight text-base-content truncate">
+            <IconLogoATRC className="w-7 h-7 shrink-0 rounded-xl shadow-xs" />
+            <span className="text-sm font-extrabold tracking-tight text-base-content truncate">
               {brandLabel}
             </span>
           </button>
@@ -254,13 +259,9 @@ export function Sidebar({
             }}
             title={`${brandLabel} 홈으로 이동`}
             aria-label={`${brandLabel} 홈으로 이동`}
-            className="w-9 h-9 rounded-2xl flex items-center justify-center pst-press hover:bg-base-content/10 transition-colors focus-visible:outline-2 focus-visible:outline-primary mx-auto"
+            className="w-10 h-10 rounded-2xl flex items-center justify-center pst-press hover:bg-base-content/10 transition-colors focus-visible:outline-2 focus-visible:outline-primary mx-auto"
           >
-            <span
-              className="h-3.5 w-3.5 rounded-full shrink-0 shadow-xs"
-              style={{ background: "var(--gradient-brand)" }}
-              aria-hidden="true"
-            />
+            <IconLogoATRC className="w-7 h-7 shrink-0 rounded-xl shadow-xs" />
           </button>
         )}
       </div>

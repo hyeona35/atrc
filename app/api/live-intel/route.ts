@@ -21,6 +21,8 @@ export async function GET(request: Request) {
         activeSources: [],
         signals: [],
         liveModels: [],
+        predictionMarkets: [],
+        dailyDigestKo: "실시간 시그널을 불러오는 중 오류가 발생했습니다.",
         stats: {
           totalSignalsFetched: 0,
           liveModelsTracked: 0,

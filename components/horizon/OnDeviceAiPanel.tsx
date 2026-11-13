@@ -39,7 +39,7 @@ export function OnDeviceAiModalBody({
   const handleInstallClick = async () => {
     const outcome = await triggerPwaInstallPrompt();
     if (outcome === "accepted") {
-      setPwaGuideMessage("Event Horizon 앱 설치가 완료되었습니다.");
+      setPwaGuideMessage("ATRC 앱 설치가 완료되었습니다.");
     } else if (outcome === "manual_guide_needed") {
       setPwaGuideMessage(
         pwaState.isIosSafari
@@ -81,7 +81,7 @@ export function OnDeviceAiModalBody({
             onClick={handleInstallClick}
           >
             {pwaState.canPromptNative
-              ? "Event Horizon 앱 바로 설치"
+              ? "ATRC 앱 바로 설치"
               : "기기별 앱 설치 방법 확인"}
           </Button>
         )}

@@ -1,13 +1,13 @@
 /* PROJECT */
-  Name: Event Horizon (이벤트 호라이즌)
+  Name: ATRC (AI & Technological Singularity Research Observatory)
   Role: 실시간 글로벌 AI 시그널 · 특이점 · 거시 전환 관측소
   Site: https://atrc.hyeona3.com
   Location: Seoul, Republic of Korea
 
 /* DATA & INTELLIGENCE PIPELINE */
-  Official Feeds: OpenAI RSS, Google DeepMind Blog RSS
-  Research Archives: arXiv (cs.AI / cs.CL / cs.LG), Hugging Face Daily Papers
-  Model Telemetry: OpenRouter Live Frontier Registry, METR Autonomous Horizon
+  Official Feeds: OpenAI RSS, Anthropic Engineering, Google DeepMind Blog RSS, Mistral AI RSS, METR Evals RSS
+  Research Archives: arXiv (cs.AI / cs.CL / cs.LG), Hugging Face Daily Papers & Technical Blog
+  Model Telemetry: OpenRouter Live Frontier Registry, METR Autonomous Horizon, Polymarket AI Markets
   Summarization: Hybrid On-Device WebGPU LLM (Qwen2.5) + Server Auto-Translation
 
 /* STANDARDS */

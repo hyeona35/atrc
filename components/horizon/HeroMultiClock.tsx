@@ -6,7 +6,8 @@ import {
   ENSEMBLE_CLOCKS,
   type EnsembleClockSpec,
 } from "@/lib/data/eventHorizonData";
-import { IconChevronDown } from "@/components/ui/icons";
+import type { PredictionMarketItem } from "@/lib/server/liveIntel";
+import { IconChevronDown, IconExternalLink, IconSliders } from "@/components/ui/icons";
 import { triggerHaptic } from "@/lib/haptics";
 
 interface CountdownParts {
@@ -48,7 +49,8 @@ function formatShortYearMonth(ms: number): string {
 
 const TIMELINE_START_MS = Date.parse("2026-06-01T00:00:00+09:00");
 const TIMELINE_END_MS = Date.parse("2033-06-01T00:00:00+09:00");
-const SAFETY_BUFFER_MS = 14 * 30.4375 * 86400 * 1000;
+const MS_PER_MONTH = 30.4375 * 86400 * 1000;
+const SAFETY_BUFFER_MS = 14 * MS_PER_MONTH;
 
 function toTimelinePercent(ms: number): number {
   const ratio = (ms - TIMELINE_START_MS) / (TIMELINE_END_MS - TIMELINE_START_MS);
@@ -63,14 +65,22 @@ export interface HeroMultiClockProps {
     liveModelsTracked: number;
     reasoningAndAgentPaperRatioPercent: number;
   };
+  predictionMarkets?: PredictionMarketItem[];
 }
 
-export function HeroMultiClock({ liveStats }: HeroMultiClockProps) {
+export function HeroMultiClock({
+  liveStats,
+  predictionMarkets = [],
+}: HeroMultiClockProps) {
   const [nowMs, setNowMs] = useState<number>(BASELINE_ANCHOR_MS);
   const [selectedClockId, setSelectedClockId] =
     useState<EnsembleClockSpec["id"]>("agi");
   const [scenario, setScenario] = useState<ScenarioMode>("baseline");
   const [showMethodology, setShowMethodology] = useState<boolean>(false);
+  const [showSimulator, setShowSimulator] = useState<boolean>(false);
+  const [showAllMarkets, setShowAllMarkets] = useState<boolean>(false);
+  const [rdSpeedupFactor, setRdSpeedupFactor] = useState<number>(1.0);
+  const [infraOffsetMonths, setInfraOffsetMonths] = useState<number>(0);
 
   useEffect(() => {
     const updateClock = () => setNowMs(Date.now());
@@ -86,20 +96,42 @@ export function HeroMultiClock({ liveStats }: HeroMultiClockProps) {
     ENSEMBLE_CLOCKS.find((c) => c.id === selectedClockId) ?? ENSEMBLE_CLOCKS[1];
 
   const getAdjustedTargetMs = (spec: EnsembleClockSpec): number => {
+    let baseTargetMs: number;
     if (scenario === "fast-rsi") {
-      return Date.parse(spec.fastTakeoffDateIso);
+      baseTargetMs = Date.parse(spec.fastTakeoffDateIso);
+    } else {
+      const baseMs = Date.parse(spec.targetDateIso);
+      if (scenario === "baseline") {
+        baseTargetMs = baseMs;
+      } else if (spec.id === "seed-rsi") {
+        baseTargetMs = baseMs + SAFETY_BUFFER_MS * 0.25;
+      } else if (spec.id === "agi") {
+        baseTargetMs = baseMs + SAFETY_BUFFER_MS;
+      } else if (spec.id === "rsi") {
+        baseTargetMs = baseMs + SAFETY_BUFFER_MS * 0.85;
+      } else {
+        baseTargetMs = baseMs + SAFETY_BUFFER_MS * 0.75;
+      }
     }
-    const baseMs = Date.parse(spec.targetDateIso);
-    if (scenario === "baseline") return baseMs;
-    if (spec.id === "seed-rsi") return baseMs + SAFETY_BUFFER_MS * 0.25;
-    if (spec.id === "agi") return baseMs + SAFETY_BUFFER_MS;
-    if (spec.id === "rsi") return baseMs + SAFETY_BUFFER_MS * 0.85;
-    return baseMs + SAFETY_BUFFER_MS * 0.75;
+
+    const remainingFromAnchor = Math.max(0, baseTargetMs - BASELINE_ANCHOR_MS);
+    const scaledRemaining = remainingFromAnchor / Math.max(0.5, rdSpeedupFactor);
+    const finalMs =
+      BASELINE_ANCHOR_MS + scaledRemaining + infraOffsetMonths * MS_PER_MONTH;
+    return Math.max(nowMs + 86400 * 1000, finalMs);
   };
+
+  const isCustomModified =
+    Math.abs(rdSpeedupFactor - 1.0) > 0.01 || infraOffsetMonths !== 0;
 
   const activeTargetMs = getAdjustedTargetMs(selectedClock);
   const countdown = computeCountdown(activeTargetMs, nowMs);
   const nowPercent = toTimelinePercent(nowMs);
+
+  const seedMs = getAdjustedTargetMs(ENSEMBLE_CLOCKS[0]!);
+  const agiMs = getAdjustedTargetMs(ENSEMBLE_CLOCKS[1]!);
+  const fullRsiMs = getAdjustedTargetMs(ENSEMBLE_CLOCKS[2]!);
+  const gapMonths = Math.max(1, Math.round((fullRsiMs - seedMs) / MS_PER_MONTH));
 
   return (
     <section
@@ -248,23 +280,146 @@ export function HeroMultiClock({ liveStats }: HeroMultiClockProps) {
             })}
           </div>
 
-          <button
-            type="button"
-            onClick={() => {
-              triggerHaptic("light");
-              setShowMethodology((prev) => !prev);
-            }}
-            aria-expanded={showMethodology}
-            className="min-h-11 px-3 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 text-base-content/70 hover:text-base-content pst-press"
-          >
-            <span>산출 기준 · RSI 선후 분석 {showMethodology ? "접기" : "보기"}</span>
-            <IconChevronDown
-              className={`w-3.5 h-3.5 transition-transform duration-200 ${
-                showMethodology ? "rotate-180" : ""
+          <div className="flex flex-wrap items-center gap-1">
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic("light");
+                setShowSimulator((prev) => !prev);
+                if (showMethodology) setShowMethodology(false);
+              }}
+              aria-expanded={showSimulator}
+              className={`min-h-11 px-3 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 pst-press transition-colors ${
+                showSimulator || isCustomModified
+                  ? "text-primary bg-primary/10"
+                  : "text-base-content/70 hover:text-base-content"
               }`}
-            />
-          </button>
+            >
+              <IconSliders className="w-3.5 h-3.5" />
+              <span>
+                What-If 가정 조절{isCustomModified ? " (커스텀)" : ""}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic("light");
+                setShowMethodology((prev) => !prev);
+                if (showSimulator) setShowSimulator(false);
+              }}
+              aria-expanded={showMethodology}
+              className="min-h-11 px-3 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 text-base-content/70 hover:text-base-content pst-press"
+            >
+              <span>산출 기준 · RSI 분석 {showMethodology ? "접기" : "보기"}</span>
+              <IconChevronDown
+                className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                  showMethodology ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+          </div>
         </div>
+
+        {/* Interactive What-If Sensitivity Simulator */}
+        {showSimulator && (
+          <div className="mt-3 p-5 sm:p-6 rounded-3xl material-regular space-y-5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="space-y-0.5">
+                <p className="text-xs font-bold text-base-content">
+                  What-If 도달 시점 민감도 시뮬레이터
+                </p>
+                <p
+                  className="text-xs"
+                  style={{ color: "var(--label-secondary)" }}
+                >
+                  알고리즘 R&D 자동화 배수와 전력·규제 병목 완충 기간을 조절해 4개 마일스톤의 변동을 관측합니다.
+                </p>
+              </div>
+              {isCustomModified && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic("light");
+                    setRdSpeedupFactor(1.0);
+                    setInfraOffsetMonths(0);
+                  }}
+                  className="min-h-11 px-3 rounded-xl text-xs font-semibold text-primary hover:bg-primary/10 pst-press"
+                >
+                  기본값 초기화
+                </button>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <label
+                    htmlFor="sim-rd-speedup"
+                    className="font-semibold text-base-content"
+                  >
+                    AI R&D 자동화 가속 계수
+                  </label>
+                  <span className="font-mono font-bold tabular-nums text-primary">
+                    {rdSpeedupFactor.toFixed(2)}x
+                  </span>
+                </div>
+                <input
+                  id="sim-rd-speedup"
+                  type="range"
+                  min={0.7}
+                  max={1.8}
+                  step={0.05}
+                  value={rdSpeedupFactor}
+                  onChange={(e) => setRdSpeedupFactor(Number.parseFloat(e.target.value))}
+                  className="range range-xs range-primary w-full"
+                />
+                <div
+                  className="flex justify-between text-[11px] font-mono"
+                  style={{ color: "var(--label-secondary)" }}
+                >
+                  <span>0.7x (정체)</span>
+                  <span>1.0x (기본)</span>
+                  <span>1.8x (급가속)</span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <label
+                    htmlFor="sim-infra-offset"
+                    className="font-semibold text-base-content"
+                  >
+                    전력 · 연산 · 규제 병목 가감
+                  </label>
+                  <span className="font-mono font-bold tabular-nums text-base-content">
+                    {infraOffsetMonths > 0
+                      ? `+${infraOffsetMonths}개월`
+                      : `${infraOffsetMonths}개월`}
+                  </span>
+                </div>
+                <input
+                  id="sim-infra-offset"
+                  type="range"
+                  min={-6}
+                  max={18}
+                  step={1}
+                  value={infraOffsetMonths}
+                  onChange={(e) => setInfraOffsetMonths(Number.parseInt(e.target.value, 10))}
+                  className="range range-xs range-secondary w-full"
+                />
+                <div
+                  className="flex justify-between text-[11px] font-mono"
+                  style={{ color: "var(--label-secondary)" }}
+                >
+                  <span>-6개월 (조기 증설)</span>
+                  <span>0개월</span>
+                  <span>+18개월 (병목)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Progressive Disclosure: Empirical Proxies + Seed RSI vs Full RSI Analysis */}
         {showMethodology && (
@@ -290,15 +445,48 @@ export function HeroMultiClock({ liveStats }: HeroMultiClockProps) {
               </div>
             </div>
 
-            <div className="pt-4 border-t border-base-content/10 space-y-2 text-xs leading-relaxed">
-              <p className="font-bold text-base-content">
-                왜 초기 RSI(Seed RSI)는 AGI보다 먼저 오고, 완전 자율 RSI(Full RSI)는 뒤에 배치되는가?
-              </p>
+            <div className="pt-4 border-t border-base-content/10 space-y-3 text-xs leading-relaxed">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="font-bold text-base-content">
+                  왜 초기 RSI(Seed RSI)는 AGI보다 먼저 오고, 완전 자율 RSI(Full RSI)는 뒤에 배치되는가?
+                </p>
+                <span className="font-mono text-[11px] font-semibold text-primary tabular-nums">
+                  현재 시나리오 기준 단계 간격 {gapMonths}개월
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div className="p-3 rounded-2xl bg-base-200/45 border border-base-content/10 space-y-0.5">
+                  <div className="flex items-center justify-between font-mono text-[11px]">
+                    <span className="font-bold text-base-content">1단계 · Seed RSI</span>
+                    <span className="text-primary font-bold">{formatShortYearMonth(seedMs)}</span>
+                  </div>
+                  <p className="text-[11px]" style={{ color: "var(--label-secondary)" }}>
+                    코딩·커널·보상검증 등 디지털 폐쇄 루프 R&D 자동화 점화
+                  </p>
+                </div>
+                <div className="p-3 rounded-2xl bg-base-200/45 border border-base-content/10 space-y-0.5">
+                  <div className="flex items-center justify-between font-mono text-[11px]">
+                    <span className="font-bold text-base-content">2단계 · 범용 AGI</span>
+                    <span className="text-primary font-bold">{formatShortYearMonth(agiMs)}</span>
+                  </div>
+                  <p className="text-[11px]" style={{ color: "var(--label-secondary)" }}>
+                    비정형 지식·멀티모달 주 40시간 범용 인지 과업 자율 완수
+                  </p>
+                </div>
+                <div className="p-3 rounded-2xl bg-base-200/45 border border-base-content/10 space-y-0.5">
+                  <div className="flex items-center justify-between font-mono text-[11px]">
+                    <span className="font-bold text-base-content">3단계 · Full RSI</span>
+                    <span className="text-primary font-bold">{formatShortYearMonth(fullRsiMs)}</span>
+                  </div>
+                  <p className="text-[11px]" style={{ color: "var(--label-secondary)" }}>
+                    인간 개입 없이 신규 아키텍처 발명·클러스터 본학습 단독 주도
+                  </p>
+                </div>
+              </div>
+
               <p style={{ color: "var(--label-secondary)" }}>
-                1. <strong className="text-base-content">Seed RSI 선행 (2026.12)</strong>: 코딩, 커널 최적화, 합성 데이터 정제, 강화학습 보상 검증(RLVR)은 정답 확인이 즉각적인 디지털 폐쇄 루프입니다. 따라서 물리·행정·대면 상식까지 요구하는 범용 AGI보다 좁은 의미의 AI 연구 자동화가 먼저 점화되어 AGI 도달을 끌어당깁니다.
-              </p>
-              <p style={{ color: "var(--label-secondary)" }}>
-                2. <strong className="text-base-content">Full RSI 후행 (2029.12 · 가속 시 2027.11)</strong>: 반면 인간 연구자 개입 없이 신규 패러다임 아키텍처를 창안하고 수만 장 가속기 클러스터의 본학습·검증까지 과반을 단독 주도하려면 수개월 단위 연구 실패 복구 지평(1,000시간+)과 물리적 연산·전력 시간(암달의 법칙 병목)이 필요하므로 범용 AGI 이후에 도달합니다.
+                코딩·합성데이터 정제·강화학습 검증은 정답 피드백이 즉각적인 디지털 루프이므로 범용 AGI보다 먼저 가속(Seed RSI)되지만, 아키텍처 발명과 수만 장 가속기 본학습 전체를 인간 없이 순환하는 완전 자율(Full RSI)은 장기 실패 복구(1,000h+) 및 물리 연산·전력 병목 때문에 AGI 이후에 도달합니다.
               </p>
             </div>
           </div>
@@ -366,6 +554,69 @@ export function HeroMultiClock({ liveStats }: HeroMultiClockProps) {
           </p>
         </div>
       </div>
+
+      {/* Live Polymarket Capital-Weighted Prediction Odds */}
+      {predictionMarkets.length > 0 && (
+        <div className="pt-5 border-t border-base-content/10 space-y-2.5">
+          <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+            <span className="font-bold text-base-content">
+              실시간 AI 예측 시장 합의 확률 (Polymarket)
+            </span>
+            <div className="flex items-center gap-3">
+              <span
+                className="font-mono"
+                style={{ color: "var(--label-secondary)" }}
+              >
+                글로벌 실시간 베팅 유동성 반영
+              </span>
+              {predictionMarkets.length > 3 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic("light");
+                    setShowAllMarkets((prev) => !prev);
+                  }}
+                  className="text-xs font-semibold text-primary hover:underline pst-press"
+                >
+                  {showAllMarkets
+                    ? "상위 3개만"
+                    : `전체 ${predictionMarkets.length}개 보기`}
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+            {predictionMarkets
+              .slice(0, showAllMarkets ? predictionMarkets.length : 3)
+              .map((pm) => (
+              <a
+                key={pm.id}
+                href={pm.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-3.5 rounded-2xl material-regular hover:border-primary/40 border border-base-content/10 transition-colors flex flex-col justify-between gap-2 group"
+              >
+                <p className="text-xs font-semibold text-base-content leading-snug line-clamp-2 group-hover:text-primary transition-colors">
+                  {pm.titleKo}
+                </p>
+                <div className="flex items-center justify-between gap-2 text-xs font-mono tabular-nums">
+                  <span className="font-extrabold text-primary">
+                    YES {pm.yesProbabilityPercent.toFixed(1)}%
+                  </span>
+                  <span
+                    className="inline-flex items-center gap-1"
+                    style={{ color: "var(--label-secondary)" }}
+                  >
+                    ${(pm.volumeUsd / 1000).toFixed(0)}K Vol
+                    <IconExternalLink className="w-3 h-3 opacity-60" />
+                  </span>
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
     </section>
   );
 }

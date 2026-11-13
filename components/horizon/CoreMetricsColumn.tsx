@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import type { LiveFrontierModel } from "@/lib/server/liveIntel";
 import {
   AUDIT_CHANGELOG,
@@ -10,8 +10,22 @@ import {
   METR_TRAJECTORY_POINTS,
   type MacroIndicatorItem,
 } from "@/lib/data/eventHorizonData";
-import { IconChevronDown, IconChevronRight } from "@/components/ui/icons";
+import { TextField } from "@/components/ui";
+import { IconChevronDown, IconChevronRight, IconSliders } from "@/components/ui/icons";
 import { triggerHaptic } from "@/lib/haptics";
+
+function parseUsdPrice(label: string): number | null {
+  if (label === "무료") return 0;
+  if (!label.startsWith("$")) return null;
+  const num = Number.parseFloat(label.slice(1));
+  return Number.isFinite(num) ? num : null;
+}
+
+const TOKEN_WORKLOAD_PRESETS = [
+  { id: "light", label: "경량 (5M / 1M)", inM: 5, outM: 1 },
+  { id: "coding", label: "코딩 에이전트 (25M / 5M)", inM: 25, outM: 5 },
+  { id: "research", label: "대규모 연구 (100M / 20M)", inM: 100, outM: 20 },
+] as const;
 
 function formatContextWindow(tokens: number): string {
   if (!tokens || tokens <= 0) return "-";
@@ -43,9 +57,50 @@ export function FrontierModelsSection({
   compactPreview = false,
   onViewAllModels,
 }: FrontierModelsSectionProps) {
-  const displayedModels = compactPreview
-    ? liveModels.slice(0, 5)
-    : liveModels.slice(0, 14);
+  const [providerFilter, setProviderFilter] = useState<string>("전체");
+  const [weightFilter, setWeightFilter] = useState<"all" | "open" | "closed">("all");
+  const [modelSearch, setModelSearch] = useState<string>("");
+  const [showCostEstimator, setShowCostEstimator] = useState<boolean>(false);
+  const [inputMillion, setInputMillion] = useState<number>(25);
+  const [outputMillion, setOutputMillion] = useState<number>(5);
+  const [comparedIds, setComparedIds] = useState<string[]>([]);
+
+  const toggleCompareModel = (id: string) => {
+    triggerHaptic("selection");
+    setComparedIds((prev) => {
+      if (prev.includes(id)) return prev.filter((item) => item !== id);
+      if (prev.length >= 3) return [...prev.slice(1), id];
+      return [...prev, id];
+    });
+  };
+
+  const comparedModels = useMemo(
+    () => liveModels.filter((m) => comparedIds.includes(m.id)),
+    [liveModels, comparedIds]
+  );
+
+  const providers = useMemo(() => {
+    const uniq = Array.from(new Set(liveModels.map((m) => m.provider)));
+    return ["전체", ...uniq];
+  }, [liveModels]);
+
+  const displayedModels = useMemo(() => {
+    if (compactPreview) return liveModels.slice(0, 5);
+    const q = modelSearch.trim().toLowerCase();
+    return liveModels
+      .filter((m) => {
+        if (providerFilter !== "전체" && m.provider !== providerFilter) return false;
+        if (weightFilter === "open" && !m.isOpenWeight) return false;
+        if (weightFilter === "closed" && m.isOpenWeight) return false;
+        if (!q) return true;
+        return (
+          m.name.toLowerCase().includes(q) ||
+          m.provider.toLowerCase().includes(q) ||
+          m.id.toLowerCase().includes(q)
+        );
+      })
+      .slice(0, 20);
+  }, [compactPreview, liveModels, providerFilter, weightFilter, modelSearch]);
 
   return (
     <section
@@ -76,7 +131,7 @@ export function FrontierModelsSection({
             </p>
           </div>
 
-          {compactPreview && onViewAllModels && (
+          {compactPreview && onViewAllModels ? (
             <button
               type="button"
               onClick={() => {
@@ -88,8 +143,159 @@ export function FrontierModelsSection({
               <span>모델 및 벤치마크 전체 보기</span>
               <IconChevronRight className="w-3.5 h-3.5" />
             </button>
+          ) : (
+            <button
+              type="button"
+              aria-expanded={showCostEstimator}
+              onClick={() => {
+                triggerHaptic("light");
+                setShowCostEstimator((prev) => !prev);
+              }}
+              className={`min-h-11 px-3.5 rounded-2xl text-xs font-semibold inline-flex items-center gap-1.5 border transition-colors shrink-0 self-start sm:self-auto pst-press ${
+                showCostEstimator
+                  ? "bg-primary text-primary-content border-primary"
+                  : "border-base-content/15 text-base-content hover:bg-base-content/5"
+              }`}
+            >
+              <IconSliders className="w-3.5 h-3.5" />
+              <span>월간 추론 비용 시뮬레이터</span>
+            </button>
           )}
         </div>
+
+        {!compactPreview && (
+          <div className="p-5 rounded-3xl material-regular space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-1.5">
+                {providers.map((prov) => {
+                  const active = providerFilter === prov;
+                  return (
+                    <button
+                      key={prov}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => {
+                        triggerHaptic("selection");
+                        setProviderFilter(prov);
+                      }}
+                      className={`min-h-11 px-3 rounded-2xl text-xs font-semibold transition-colors pst-press ${
+                        active
+                          ? "bg-primary text-primary-content"
+                          : "bg-base-100 text-base-content/75 hover:text-base-content border border-base-content/10"
+                      }`}
+                    >
+                      {prov}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div
+                role="group"
+                aria-label="가중치 공개 유형"
+                className="inline-flex items-center p-1 rounded-2xl bg-base-200/80 border border-base-content/10 self-start sm:self-auto"
+              >
+                {(
+                  [
+                    { id: "all", label: "전체" },
+                    { id: "closed", label: "프론티어 API" },
+                    { id: "open", label: "오픈웨이트" },
+                  ] as const
+                ).map((opt) => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    aria-pressed={weightFilter === opt.id}
+                    onClick={() => {
+                      triggerHaptic("selection");
+                      setWeightFilter(opt.id);
+                    }}
+                    className={`min-h-9 px-2.5 rounded-xl text-[11px] font-semibold transition-colors pst-press ${
+                      weightFilter === opt.id
+                        ? "bg-base-100 text-base-content shadow-xs"
+                        : "text-base-content/65 hover:text-base-content"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <TextField
+              label="모델 검색"
+              value={modelSearch}
+              onChange={setModelSearch}
+              inputMode="search"
+              placeholder="모델명 또는 ID로 필터링 (예: Claude, GPT, DeepSeek)"
+            />
+
+            {showCostEstimator && (
+              <div className="pt-4 border-t border-base-content/10 space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-xs font-bold text-base-content">
+                    워크로드 기준 월간 API 예상 비용 ({inputMillion}M 입력 + {outputMillion}M 출력)
+                  </span>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {TOKEN_WORKLOAD_PRESETS.map((preset) => (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        onClick={() => {
+                          triggerHaptic("selection");
+                          setInputMillion(preset.inM);
+                          setOutputMillion(preset.outM);
+                        }}
+                        className="min-h-9 px-2.5 rounded-xl text-[11px] font-semibold bg-base-200 hover:bg-base-300 text-base-content transition-colors pst-press"
+                      >
+                        {preset.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between text-xs">
+                      <label htmlFor="est-input-m" style={{ color: "var(--label-secondary)" }}>
+                        월 입력 토큰량
+                      </label>
+                      <span className="font-mono font-bold text-base-content">{inputMillion}M</span>
+                    </div>
+                    <input
+                      id="est-input-m"
+                      type="range"
+                      min={1}
+                      max={200}
+                      step={1}
+                      value={inputMillion}
+                      onChange={(e) => setInputMillion(Number.parseInt(e.target.value, 10))}
+                      className="range range-xs range-primary w-full"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between text-xs">
+                      <label htmlFor="est-output-m" style={{ color: "var(--label-secondary)" }}>
+                        월 출력(추론) 토큰량
+                      </label>
+                      <span className="font-mono font-bold text-base-content">{outputMillion}M</span>
+                    </div>
+                    <input
+                      id="est-output-m"
+                      type="range"
+                      min={1}
+                      max={60}
+                      step={1}
+                      value={outputMillion}
+                      onChange={(e) => setOutputMillion(Number.parseInt(e.target.value, 10))}
+                      className="range range-xs range-secondary w-full"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="rounded-3xl material-regular overflow-hidden">
           {isLoading && displayedModels.length === 0 ? (
@@ -119,46 +325,179 @@ export function FrontierModelsSection({
                     <th className="py-3.5 px-4 text-end font-semibold">
                       단가 (입력 / 출력, 1M 토큰)
                     </th>
+                    {showCostEstimator && !compactPreview && (
+                      <th className="py-3.5 px-4 text-end font-semibold text-primary">
+                        월 예상 비용
+                      </th>
+                    )}
                     <th className="py-3.5 px-6 text-end font-semibold">등록일</th>
+                    {!compactPreview && (
+                      <th className="py-3.5 pe-5 text-end font-semibold">비교</th>
+                    )}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-base-content/8">
-                  {displayedModels.map((model) => (
-                    <tr
-                      key={model.id}
-                      className="hover:bg-base-content/[0.02] transition-colors"
-                    >
-                      <td className="py-4 px-6 font-semibold text-base-content">
-                        {model.name}
-                      </td>
-                      <td
-                        className="py-4 px-4 whitespace-nowrap text-xs font-medium"
-                        style={{ color: "var(--label-secondary)" }}
+                  {displayedModels.map((model) => {
+                    const pIn = parseUsdPrice(model.promptPricePerMillion);
+                    const pOut = parseUsdPrice(model.completionPricePerMillion);
+                    const monthlyEst =
+                      pIn !== null && pOut !== null
+                        ? pIn * inputMillion + pOut * outputMillion
+                        : null;
+                    const isCompared = comparedIds.includes(model.id);
+
+                    return (
+                      <tr
+                        key={model.id}
+                        className="hover:bg-base-content/[0.02] transition-colors"
                       >
-                        {model.provider}
-                      </td>
-                      <td className="py-4 px-4 text-end font-mono text-xs tabular-nums text-base-content">
-                        {formatContextWindow(model.contextLength)}
-                      </td>
-                      <td
-                        className="py-4 px-4 text-end font-mono text-xs tabular-nums whitespace-nowrap"
-                        style={{ color: "var(--label-secondary)" }}
-                      >
-                        {model.promptPricePerMillion} / {model.completionPricePerMillion}
-                      </td>
-                      <td
-                        className="py-4 px-6 text-end font-mono text-xs tabular-nums whitespace-nowrap"
-                        style={{ color: "var(--label-secondary)" }}
-                      >
-                        {formatShortDate(model.releasedIso)}
-                      </td>
-                    </tr>
-                  ))}
+                        <td className="py-4 px-6 font-semibold text-base-content">
+                          <div className="flex items-center gap-2">
+                            <span>{model.name}</span>
+                            {model.isOpenWeight && !compactPreview && (
+                              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-secondary/15 text-secondary">
+                                OSS
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td
+                          className="py-4 px-4 whitespace-nowrap text-xs font-medium"
+                          style={{ color: "var(--label-secondary)" }}
+                        >
+                          {model.provider}
+                        </td>
+                        <td className="py-4 px-4 text-end font-mono text-xs tabular-nums text-base-content">
+                          {formatContextWindow(model.contextLength)}
+                        </td>
+                        <td
+                          className="py-4 px-4 text-end font-mono text-xs tabular-nums whitespace-nowrap"
+                          style={{ color: "var(--label-secondary)" }}
+                        >
+                          {model.promptPricePerMillion} / {model.completionPricePerMillion}
+                        </td>
+                        {showCostEstimator && !compactPreview && (
+                          <td className="py-4 px-4 text-end font-mono text-xs font-bold tabular-nums text-primary whitespace-nowrap">
+                            {monthlyEst !== null ? `$${monthlyEst.toFixed(2)}` : "-"}
+                          </td>
+                        )}
+                        <td
+                          className="py-4 px-6 text-end font-mono text-xs tabular-nums whitespace-nowrap"
+                          style={{ color: "var(--label-secondary)" }}
+                        >
+                          {formatShortDate(model.releasedIso)}
+                        </td>
+                        {!compactPreview && (
+                          <td className="py-3 pe-5 text-end">
+                            <button
+                              type="button"
+                              aria-pressed={isCompared}
+                              onClick={() => toggleCompareModel(model.id)}
+                              className={`min-h-9 px-2.5 rounded-xl text-[11px] font-semibold border transition-colors pst-press ${
+                                isCompared
+                                  ? "bg-primary text-primary-content border-primary"
+                                  : "border-base-content/15 text-base-content/75 hover:text-base-content"
+                              }`}
+                            >
+                              {isCompared ? "선택됨" : "+ 비교"}
+                            </button>
+                          </td>
+                        )}
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
           )}
         </div>
+
+        {/* Side-by-Side Comparison Matrix (When 2-3 Models Selected) */}
+        {!compactPreview && comparedModels.length >= 2 && (
+          <div className="p-5 sm:p-6 rounded-3xl material-regular space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="space-y-0.5">
+                <h3 className="text-sm font-bold text-base-content">
+                  선택 모델 나란히 비교 ({comparedModels.length}/3)
+                </h3>
+                <p
+                  className="text-xs"
+                  style={{ color: "var(--label-secondary)" }}
+                >
+                  동일 예산($100, 입력:출력 5:1 작업 기준)에서의 처리 가능량과 컨텍스트 창 비교입니다.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic("light");
+                  setComparedIds([]);
+                }}
+                className="min-h-9 px-2.5 rounded-xl text-xs font-semibold text-base-content/70 hover:text-base-content pst-press"
+              >
+                비교 초기화
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {comparedModels.map((m) => {
+                const pIn = parseUsdPrice(m.promptPricePerMillion);
+                const pOut = parseUsdPrice(m.completionPricePerMillion);
+                const blendedPer1MTokens =
+                  pIn !== null && pOut !== null ? (pIn * 5 + pOut) / 6 : null;
+                const tokensPer100Usd =
+                  blendedPer1MTokens && blendedPer1MTokens > 0
+                    ? `${Math.round(100 / blendedPer1MTokens).toLocaleString("ko-KR")}M`
+                    : blendedPer1MTokens === 0
+                    ? "무료"
+                    : "-";
+
+                return (
+                  <div
+                    key={m.id}
+                    className="p-4 rounded-2xl bg-base-200/45 border border-base-content/10 space-y-2.5 text-xs"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="font-bold text-base-content">{m.name}</p>
+                        <p style={{ color: "var(--label-secondary)" }}>
+                          {m.provider} {m.isOpenWeight ? "· 오픈웨이트" : "· API"}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => toggleCompareModel(m.id)}
+                        className="text-[11px] opacity-65 hover:opacity-100"
+                        aria-label={`${m.name} 비교 해제`}
+                      >
+                        해제
+                      </button>
+                    </div>
+
+                    <div className="divide-y divide-base-content/8 font-mono tabular-nums">
+                      <div className="py-1.5 flex justify-between">
+                        <span style={{ color: "var(--label-secondary)" }}>컨텍스트</span>
+                        <span className="font-bold text-base-content">
+                          {formatContextWindow(m.contextLength)}
+                        </span>
+                      </div>
+                      <div className="py-1.5 flex justify-between">
+                        <span style={{ color: "var(--label-secondary)" }}>입력 / 출력 단가</span>
+                        <span className="text-base-content">
+                          {m.promptPricePerMillion} / {m.completionPricePerMillion}
+                        </span>
+                      </div>
+                      <div className="py-1.5 flex justify-between">
+                        <span style={{ color: "var(--label-secondary)" }}>$100 처리량(5:1)</span>
+                        <span className="font-bold text-primary">{tokensPer100Usd}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 2 & 3. Full Models View: METR Autonomous Curve + Unsaturated Reasoning Benchmarks */}
@@ -345,32 +684,82 @@ const MACRO_DOMAIN_ORDER: MacroIndicatorItem["domain"][] = [
 
 export function MacroFutureSection() {
   const [expandedMacroId, setExpandedMacroId] = useState<string | null>(null);
+  const [stageFilter, setStageFilter] = useState<"all" | MacroIndicatorItem["stage"]>("all");
   const [showAuditLog, setShowAuditLog] = useState<boolean>(false);
+
+  const stageCounts = useMemo(
+    () => ({
+      early: MACRO_12_INDICATORS.filter((m) => m.stage === "조기경보 도달").length,
+      progress: MACRO_12_INDICATORS.filter((m) => m.stage === "관측 진행").length,
+      lagging: MACRO_12_INDICATORS.filter((m) => m.stage === "후행 완충").length,
+    }),
+    []
+  );
 
   return (
     <section aria-labelledby="macro-future-heading" className="space-y-14">
       {/* 1. 12 Macroeconomic & Labor Transition Indicators */}
       <div className="space-y-6">
-        <div className="space-y-1.5">
-          <h2
-            id="macro-future-heading"
-            className="text-xl sm:text-2xl font-extrabold tracking-tight text-base-content"
-          >
-            거시경제 및 고용 전환 12대 관측 지표
-          </h2>
-          <p
-            className="text-sm leading-relaxed"
-            style={{ color: "var(--label-secondary)" }}
-          >
-            설비투자 선행 지표부터 지식근로 진입 장벽, 총고용·소득분배 후행 지표까지의 단계별 파급 경로를 추적합니다. 각 행을 누르면 세부 해석이 열립니다.
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+          <div className="space-y-1.5">
+            <h2
+              id="macro-future-heading"
+              className="text-xl sm:text-2xl font-extrabold tracking-tight text-base-content"
+            >
+              거시경제 및 고용 전환 12대 관측 지표
+            </h2>
+            <p
+              className="text-sm leading-relaxed"
+              style={{ color: "var(--label-secondary)" }}
+            >
+              설비투자 선행 지표부터 지식근로 진입 장벽, 총고용·소득분배 후행 지표까지의 단계별 파급 경로를 추적합니다. 각 행을 누르면 세부 해석이 열립니다.
+            </p>
+          </div>
+        </div>
+
+        <div
+          role="group"
+          aria-label="거시 지표 경보 단계 필터"
+          className="flex flex-wrap items-center gap-1.5"
+        >
+          {(
+            [
+              { id: "all", label: `전체 (${MACRO_12_INDICATORS.length})` },
+              { id: "조기경보 도달", label: `조기경보 도달 (${stageCounts.early})` },
+              { id: "관측 진행", label: `관측 진행 (${stageCounts.progress})` },
+              { id: "후행 완충", label: `후행 완충 (${stageCounts.lagging})` },
+            ] as const
+          ).map((tab) => {
+            const active = stageFilter === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                aria-pressed={active}
+                onClick={() => {
+                  triggerHaptic("selection");
+                  setStageFilter(tab.id);
+                }}
+                className={`min-h-11 px-3.5 rounded-2xl text-xs font-semibold transition-colors pst-press ${
+                  active
+                    ? "bg-primary text-primary-content"
+                    : "bg-base-100 text-base-content/75 hover:text-base-content border border-base-content/10"
+                }`}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
         </div>
 
         <div className="space-y-8">
           {MACRO_DOMAIN_ORDER.map((domainName) => {
             const items = MACRO_12_INDICATORS.filter(
-              (item) => item.domain === domainName
+              (item) =>
+                item.domain === domainName &&
+                (stageFilter === "all" || item.stage === stageFilter)
             );
+            if (items.length === 0) return null;
             return (
               <div key={domainName} className="space-y-3">
                 <h3 className="text-sm font-bold text-base-content px-1">

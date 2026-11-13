@@ -3,8 +3,8 @@ import type { MetadataRoute } from "next";
 export default function manifest(): MetadataRoute.Manifest {
   return {
     id: "/",
-    name: "Event Horizon — 실시간 특이점 · AGI 관측소",
-    short_name: "Event Horizon",
+    name: "ATRC — 실시간 AI 시그널 · 특이점 관측소",
+    short_name: "ATRC",
     description:
       "실시간 글로벌 AI 시그널 자동 요약, 주요 인물 X 타임라인 모아보기, Seed RSI·AGI·ASI 도달 예측 시계 및 거시 전환 관측소",
     start_url: "/",
@@ -17,25 +17,25 @@ export default function manifest(): MetadataRoute.Manifest {
     lang: "ko",
     icons: [
       {
-        src: "/icon-192.png",
+        src: "/icons/atrc-192.png",
         sizes: "192x192",
         type: "image/png",
         purpose: "any",
       },
       {
-        src: "/icon-192.png",
+        src: "/icons/atrc-192.png",
         sizes: "192x192",
         type: "image/png",
         purpose: "maskable",
       },
       {
-        src: "/icon-512.png",
+        src: "/icons/atrc-512.png",
         sizes: "512x512",
         type: "image/png",
         purpose: "any",
       },
       {
-        src: "/icon-512.png",
+        src: "/icons/atrc-512.png",
         sizes: "512x512",
         type: "image/png",
         purpose: "maskable",
@@ -46,13 +46,13 @@ export default function manifest(): MetadataRoute.Manifest {
         name: "관측 요약",
         short_name: "요약",
         url: "/",
-        icons: [{ src: "/icon-192.png", sizes: "192x192", type: "image/png" }],
+        icons: [{ src: "/icons/atrc-192.png", sizes: "192x192", type: "image/png" }],
       },
       {
         name: "주요 인물 X 피드",
         short_name: "X 피드",
         url: "/x-feed",
-        icons: [{ src: "/icon-192.png", sizes: "192x192", type: "image/png" }],
+        icons: [{ src: "/icons/atrc-192.png", sizes: "192x192", type: "image/png" }],
       },
     ],
   };

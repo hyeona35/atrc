@@ -40,7 +40,7 @@ export function OfflineBanner() {
     <aside
       role="status"
       aria-live="polite"
-      className="fixed bottom-20 md:bottom-6 end-4 z-40 max-w-sm w-[calc(100%-2rem)] transition-all duration-300 ease-out"
+      className="fixed bottom-[calc(var(--tabbar-height)+var(--safe-bottom,0px)+20px)] md:bottom-[calc(24px+var(--safe-bottom,0px))] end-[calc(16px+var(--safe-right,0px))] z-40 max-w-sm w-[calc(100%-2rem)] transition-all duration-300 ease-out"
     >
       {!isOnline ? (
         <div className="liquid-glass-elevated rounded-2xl p-3 border border-warning/30 shadow-lg flex items-center justify-between gap-3 text-xs bg-warning/10 text-neutral-900 dark:text-neutral-100">

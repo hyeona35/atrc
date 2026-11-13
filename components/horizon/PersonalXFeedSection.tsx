@@ -8,6 +8,7 @@ import type {
 import {
   BASELINE_ANCHOR_MS,
   INFLUENCER_ACCOUNTS,
+  TIER_METHODOLOGY,
 } from "@/lib/data/eventHorizonData";
 import {
   readCachedLocalSummaries,
@@ -18,6 +19,7 @@ import {
   IconArrowPath,
   IconCheckCircle,
   IconChevronDown,
+  IconClipboard,
   IconExternalLink,
   IconLock,
   IconSparkles,
@@ -26,7 +28,7 @@ import {
 import { useModal, useToast } from "@/context/OverlayContext";
 import { triggerHaptic } from "@/lib/haptics";
 
-type TierFilter = "all" | "S" | "A" | "B" | "C" | "DF";
+type TierFilter = "all" | "S" | "A" | "B" | "C" | "D";
 
 function formatRelativeTime(iso: string, nowMs: number): string {
   const parsed = Date.parse(iso);
@@ -253,12 +255,56 @@ export function PersonalXFeedSection() {
   }, [tweets, excludeHype, searchQuery]);
 
   const filteredDirectoryAccounts = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
     return INFLUENCER_ACCOUNTS.filter((acc) => {
-      if (tierFilter === "all") return true;
-      if (tierFilter === "DF") return acc.tier === "D" || acc.tier === "F";
-      return acc.tier === tierFilter;
+      if (tierFilter !== "all" && acc.tier !== tierFilter) return false;
+      if (!q) return true;
+      return (
+        acc.displayName.toLowerCase().includes(q) ||
+        acc.handle.toLowerCase().includes(q) ||
+        acc.affiliation.toLowerCase().includes(q) ||
+        acc.signalTypes.toLowerCase().includes(q)
+      );
     });
-  }, [tierFilter]);
+  }, [tierFilter, searchQuery]);
+
+  const activeTierMeta = useMemo(
+    () => TIER_METHODOLOGY.find((m) => m.tier === tierFilter) ?? null,
+    [tierFilter]
+  );
+
+  const [showTierMethodology, setShowTierMethodology] = useState<boolean>(false);
+
+  const xSearchPack = useMemo(() => {
+    const targets =
+      tierFilter === "all"
+        ? INFLUENCER_ACCOUNTS.filter((a) => a.tier === "S" || a.tier === "B").slice(0, 10)
+        : filteredDirectoryAccounts.slice(0, 12);
+    const fromClause = targets
+      .map((a) => `from:${a.handle.replace(/^@/, "")}`)
+      .join(" OR ");
+    const query = `(${fromClause}) -filter:replies -filter:retweets`;
+    const url = `https://x.com/search?q=${encodeURIComponent(query)}&f=live`;
+    return { count: targets.length, query, url };
+  }, [tierFilter, filteredDirectoryAccounts]);
+
+  const handleCopyXQuery = async () => {
+    triggerHaptic("light");
+    try {
+      await navigator.clipboard.writeText(xSearchPack.query);
+      showToast({
+        title: "X 고급 검색 쿼리 복사 완료",
+        description: `${xSearchPack.count}인 통합 필터 쿼리가 클립보드에 복사되었습니다.`,
+        variant: "success",
+      });
+    } catch {
+      showToast({
+        title: "복사 실패",
+        description: "클립보드 접근 권한을 확인해 주세요.",
+        variant: "warning",
+      });
+    }
+  };
 
   return (
     <section aria-labelledby="x-feed-heading" className="space-y-8">
@@ -275,7 +321,7 @@ export function PersonalXFeedSection() {
             className="text-sm leading-relaxed"
             style={{ color: "var(--label-secondary)" }}
           >
-            개인 X API v2 Bearer Token을 쿠키에 안전하게 보관하여 S~F 등급 24인의 최신 발언을 한곳에서 수집·자동 요약합니다.
+            개인 X API v2 Bearer Token을 쿠키에 안전하게 보관하여 1차 검증된 S~D 등급 30인(기관 포함)의 최신 발언을 한곳에서 수집·자동 요약합니다.
           </p>
         </div>
 
@@ -436,12 +482,12 @@ export function PersonalXFeedSection() {
           >
             {(
               [
-                { id: "all", label: "전체 (24인)" },
-                { id: "S", label: "S등급 수장" },
-                { id: "A", label: "A등급 무버" },
-                { id: "B", label: "B등급 프로버" },
-                { id: "C", label: "C등급 연구·실무" },
-                { id: "DF", label: "D·F 등급" },
+                { id: "all", label: `전체 (${INFLUENCER_ACCOUNTS.length}인)` },
+                { id: "S", label: "S등급 리더" },
+                { id: "A", label: "A등급 리서처" },
+                { id: "B", label: "B등급 검증기관" },
+                { id: "C", label: "C등급 빌더" },
+                { id: "D", label: "D등급 비평·큐레이션" },
               ] as const
             ).map((tab) => {
               const active = tierFilter === tab.id;
@@ -479,15 +525,102 @@ export function PersonalXFeedSection() {
           )}
         </div>
 
-        {configured && (
-          <TextField
-            label="인물 및 포스트 검색"
-            value={searchQuery}
-            onChange={setSearchQuery}
-            inputMode="search"
-            placeholder="이름, @핸들, 모델명 또는 키워드로 필터링"
-          />
+        <TextField
+          label="인물 · 기관 · 분야 검색"
+          value={searchQuery}
+          onChange={setSearchQuery}
+          inputMode="search"
+          placeholder="이름, @핸들, 기관명(METR/Epoch) 또는 키워드 검색"
+        />
+
+        {activeTierMeta ? (
+          <div className="px-4 py-3 rounded-2xl bg-base-200/50 border border-base-content/10 text-xs space-y-1">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="font-bold text-base-content">
+                {activeTierMeta.title}
+              </span>
+              <span className="font-mono text-base-content/70">
+                신호 가중치 {activeTierMeta.weightRange}
+              </span>
+            </div>
+            <p style={{ color: "var(--label-secondary)" }}>
+              {activeTierMeta.evaluationCriteria}
+            </p>
+          </div>
+        ) : (
+          <div>
+            <button
+              type="button"
+              aria-expanded={showTierMethodology}
+              onClick={() => {
+                triggerHaptic("light");
+                setShowTierMethodology((prev) => !prev);
+              }}
+              className="min-h-11 px-1 text-xs font-semibold inline-flex items-center gap-1.5 text-base-content/75 hover:text-base-content pst-press"
+            >
+              <span>직접 검증 티어 분류 기준 (S~D 5단계)</span>
+              <IconChevronDown
+                className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                  showTierMethodology ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+            {showTierMethodology && (
+              <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                {TIER_METHODOLOGY.map((meta) => (
+                  <div
+                    key={meta.tier}
+                    className="p-3.5 rounded-2xl bg-base-200/45 border border-base-content/10 space-y-1 text-xs"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-bold text-base-content">
+                        {meta.title}
+                      </span>
+                      <span className="font-mono text-[11px] opacity-70">
+                        {meta.weightRange}
+                      </span>
+                    </div>
+                    <p
+                      className="leading-relaxed"
+                      style={{ color: "var(--label-secondary)" }}
+                    >
+                      {meta.subtitle}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         )}
+
+        {/* Keyless Direct X Timeline Launch Strip */}
+        <div className="pt-3 border-t border-base-content/10 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+          <p
+            className="text-xs leading-relaxed"
+            style={{ color: "var(--label-secondary)" }}
+          >
+            API 키가 없어도 선택한 등급({xSearchPack.count}인)의 최신 글을 X.com 실시간 검색 피드로 바로 열어볼 수 있습니다.
+          </p>
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={handleCopyXQuery}
+              className="min-h-11 px-3 rounded-2xl text-xs font-semibold inline-flex items-center gap-1.5 border border-base-content/15 text-base-content hover:bg-base-content/5 pst-press"
+            >
+              <IconClipboard className="w-3.5 h-3.5" />
+              <span>검색 쿼리 복사</span>
+            </button>
+            <a
+              href={xSearchPack.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="min-h-11 px-3.5 rounded-2xl text-xs font-semibold inline-flex items-center gap-1.5 bg-base-100 border border-primary/35 text-primary hover:bg-primary/5 pst-press"
+            >
+              <span>X.com 타임라인 바로 열기</span>
+              <IconExternalLink className="w-3.5 h-3.5" />
+            </a>
+          </div>
+        </div>
       </div>
 
       {/* Live Timeline Ledger (When Configured) */}
@@ -628,17 +761,17 @@ export function PersonalXFeedSection() {
         </>
       )}
 
-      {/* Curated 24-Account Directory (Always Available for Reference & Direct X Profile Access) */}
+      {/* Curated Research-Backed Account Directory (Always Available for Reference & Direct X Profile Access) */}
       <div className="space-y-3 pt-2">
         <div className="flex items-baseline justify-between gap-2 px-1">
           <h3 className="text-base font-bold text-base-content">
-            추적 대상 인물 디렉터리 ({filteredDirectoryAccounts.length}인)
+            추적 대상 인물 · 검증 기관 디렉터리 ({filteredDirectoryAccounts.length}인)
           </h3>
           <span
             className="text-xs"
             style={{ color: "var(--label-secondary)" }}
           >
-            S~F 등급 가중치 및 필터링 기준
+            S~D 실증 신뢰도 가중치 및 선정 근거
           </span>
         </div>
 
@@ -665,14 +798,17 @@ export function PersonalXFeedSection() {
                       {acc.handle}
                     </span>
                     <span style={{ color: "var(--label-secondary)" }}>
-                      · {acc.affiliation} · 적중률 {acc.hitRate}%
+                      · {acc.affiliation} · 적중 {acc.hitRate}% · 가중치 {acc.weight.toFixed(2)}
                     </span>
                   </div>
                   <p
-                    className="text-xs"
+                    className="text-xs leading-relaxed"
                     style={{ color: "var(--label-secondary)" }}
                   >
-                    {acc.signalTypes} — {acc.filterRuleSummary}
+                    {acc.signalTypes} — <span className="text-base-content/75">{acc.evidenceBasis}</span>
+                  </p>
+                  <p className="text-[11px] opacity-65">
+                    검증 규칙: {acc.filterRuleSummary}
                   </p>
                 </div>
 

@@ -18,6 +18,7 @@ import {
   IconCompass,
   IconGrid,
   IconLayers,
+  IconLogoATRC,
   IconMoon,
   IconSidebarLeft,
   IconSliders,
@@ -160,9 +161,9 @@ const DEFAULT_SECTION_TITLES: Record<string, SectionMeta> = {
 export function AppShell({
   activeSection: controlledActiveSection,
   onSelectSection: controlledOnSelectSection,
-  title = "Event Horizon",
+  title = "ATRC",
   subtitle = "실시간 AI 시그널 자동 요약 및 특이점 관측소",
-  brandLabel = "Event Horizon",
+  brandLabel = "ATRC",
   defaultTheme,
   sectionTitles = DEFAULT_SECTION_TITLES,
   sidebarItems,
@@ -216,9 +217,20 @@ export function AppShell({
     }
   }, [currentSection.title, title]);
 
-  // Synchronize documentElement data-theme attribute
+  // Synchronize documentElement data-theme and status-bar theme-color meta tag
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
+    const themeHex = theme === "dark" ? "#09070e" : "#fbf9fc";
+    let dynamicMeta = document.querySelector<HTMLMetaElement>(
+      'meta[name="theme-color"][data-pstui-dynamic="true"]'
+    );
+    if (!dynamicMeta) {
+      dynamicMeta = document.createElement("meta");
+      dynamicMeta.name = "theme-color";
+      dynamicMeta.setAttribute("data-pstui-dynamic", "true");
+      document.head.appendChild(dynamicMeta);
+    }
+    dynamicMeta.content = themeHex;
   }, [theme]);
 
   // Power-user global shortcut (⌘K / Ctrl+K) for Command Menu per Requirement 31
@@ -275,6 +287,9 @@ export function AppShell({
       }
       className="relative w-full min-h-dvh overflow-x-clip md:overflow-x-visible"
     >
+      {/* Safe-area top status bar backdrop shield for edge-to-edge / iOS PWA */}
+      <div className="pst-top-safe-shield" aria-hidden="true" />
+
       {/* 1. Tablet & PC (>= md) Fixed Collapsible Liquid Glass Sidebar */}
       <Sidebar
         items={resolvedSidebarItems}
@@ -285,16 +300,12 @@ export function AppShell({
         brandLabel={brandLabel}
       />
 
-      {/* 2. Edge-to-Edge Background Extension Main Content (<main> spans 100vw, 100dvh; uses internal padding so content scrolls behind Liquid Glass) */}
+      {/* 2. Edge-to-Edge Background Extension Main Content (<main> spans 100vw, 100dvh; uses internal safe-area padding) */}
       <main
-        className="w-full min-h-dvh transition-all duration-300 ease-out px-4 sm:px-6 md:pe-6 pt-3 md:ps-[calc(var(--active-sidebar-width)+24px)]"
-        style={{
-          paddingBottom:
-            "calc(var(--tabbar-height) + env(safe-area-inset-bottom, 0px) + 32px)",
-        }}
+        className="w-full min-h-dvh transition-[padding-inline-start,padding-inline-end] duration-300 ease-out pt-[calc(12px+var(--safe-top,0px))] pb-[calc(var(--tabbar-height)+var(--safe-bottom,0px)+32px)] ps-[calc(16px+var(--safe-left,0px))] pe-[calc(16px+var(--safe-right,0px))] sm:ps-[calc(24px+var(--safe-left,0px))] sm:pe-[calc(24px+var(--safe-right,0px))] md:ps-[calc(var(--active-sidebar-width)+28px+var(--safe-left,0px))] md:pe-[calc(24px+var(--safe-right,0px))]"
       >
         {/* 2A. Desktop/Tablet (>= md) Unified Top Workspace App Bar (Strong Curvature rounded-3xl) */}
-        <header className="hidden md:flex sticky top-3 z-20 liquid-glass rounded-3xl px-4 py-2.5 items-center justify-between gap-3 transition-all duration-300 ease-out mb-5 shadow-sm">
+        <header className="hidden md:flex sticky top-[calc(12px+var(--safe-top,0px))] z-20 liquid-glass rounded-3xl px-4 py-2.5 items-center justify-between gap-3 transition-all duration-300 ease-out mb-5 shadow-sm">
           <div className="flex items-center gap-3 min-w-0 shrink">
             {/* Leading Sidebar Collapse/Expand Toggle Button per Requirement 1 */}
             <button
@@ -375,7 +386,7 @@ export function AppShell({
                 triggerHaptic("selection");
                 setIsCommandMenuOpen(true);
               }}
-              className="pst-press cursor-pointer inline-flex items-center"
+              className="pst-press cursor-pointer hidden lg:inline-flex items-center"
               aria-label="빠른 이동 커맨드 메뉴 (⌘K)"
             >
               <KBD keys={["⌘", "K"]} size="xs" />
@@ -452,7 +463,7 @@ export function AppShell({
         </header>
 
         {/* 2B. Mobile (< md) Stable Fixed-Height App Bar per Requirement 4 (Zero CLS, Zero Jittering) */}
-        <header className="md:hidden sticky top-2 z-20 liquid-glass rounded-3xl px-3.5 py-2.5 flex items-center justify-between gap-2 mb-4 shadow-sm transition-all duration-300">
+        <header className="md:hidden sticky top-[calc(8px+var(--safe-top,0px))] z-20 liquid-glass rounded-3xl px-3.5 py-2 flex items-center justify-between gap-2 mb-4 shadow-sm transition-all duration-300">
           <button
             type="button"
             onClick={() => {
@@ -466,14 +477,8 @@ export function AppShell({
             aria-label={`${currentSection.title} - 메인으로 이동 및 맨 위로 스크롤`}
             className="text-start flex-1 min-w-0 cursor-pointer pst-press rounded-xl focus-visible:outline-2 focus-visible:outline-primary p-1 -m-1 flex items-center gap-2"
           >
-            {!minimalHeader && (
-              <span
-                className="h-2.5 w-2.5 rounded-full shrink-0 shadow-xs"
-                style={{ background: "var(--gradient-brand)" }}
-                aria-hidden="true"
-              />
-            )}
-            <h1 className="font-bold tracking-tight text-base-content text-sm sm:text-base truncate">
+            <IconLogoATRC className="w-6 h-6 shrink-0 rounded-lg shadow-xs" />
+            <h1 className="font-bold tracking-tight text-base-content text-sm sm:text-base truncate leading-tight">
               {currentSection.title}
             </h1>
             {!minimalHeader && (
@@ -491,7 +496,7 @@ export function AppShell({
                 triggerHaptic("selection");
                 setIsCommandMenuOpen(true);
               }}
-              className="btn btn-ghost btn-circle btn-xs rounded-xl pst-press text-base-content"
+              className="hidden sm:inline-flex items-center btn btn-ghost btn-circle btn-xs rounded-xl pst-press text-base-content"
               aria-label="⌘K 커맨드 메뉴 열기"
             >
               <KBD keys={["⌘K"]} size="xs" />
@@ -583,7 +588,7 @@ export function AppShell({
                   splitViewItems ?? [
                     { id: "overview", title: "관측 요약", count: "요약" },
                     { id: "signals", title: "실시간 시그널", count: "피드" },
-                    { id: "x-feed", title: "인물 X 피드", count: "24인" },
+                    { id: "x-feed", title: "인물 X 피드", count: "30인" },
                     { id: "models", title: "프론티어 지능", count: "모델" },
                     { id: "macro", title: "거시 · 미래", count: "12지표" },
                   ]

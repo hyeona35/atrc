@@ -177,7 +177,6 @@ export async function GET(request: Request) {
 
   const targetAccounts = INFLUENCER_ACCOUNTS.filter((acc) => {
     if (tierFilter === "all") return true;
-    if (tierFilter === "DF") return acc.tier === "D" || acc.tier === "F";
     return acc.tier === tierFilter;
   });
 
@@ -291,7 +290,7 @@ export async function GET(request: Request) {
       const authorName = account?.displayName ?? user?.name ?? handleStr;
       const tier: InfluencerTier = account?.tier ?? "C";
       const isHype =
-        (tier === "D" || (tier === "F" && account?.id !== "scaling01")) ||
+        (account ? account.weight < 0.6 : false) ||
         /\b(agi achieved|shocking|breaking:|insane|100x)\b/i.test(cleanText);
 
       const summarized = cleanText

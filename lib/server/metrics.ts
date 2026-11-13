@@ -10,7 +10,7 @@ export interface TelemetryMetric {
 }
 
 /**
- * Server-only Event Horizon ingest pipeline telemetry with React.cache() memoization.
+ * Server-only ATRC ingest pipeline telemetry with React.cache() memoization.
  */
 export const fetchServerTelemetry = cache(async (): Promise<TelemetryMetric[]> => {
   return [

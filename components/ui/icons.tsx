@@ -1152,3 +1152,118 @@ export function IconGoogle({
   );
 }
 
+export function IconBookmark({
+  className = "w-4 h-4",
+  filled = false,
+  ...props
+}: IconProps) {
+  if (filled) {
+    return (
+      <svg
+        className={className}
+        viewBox="0 0 24 24"
+        fill="currentColor"
+        aria-hidden="true"
+        {...props}
+      >
+        <path d="M6.32 2.577a49.255 49.255 0 0111.36 0c1.497.174 2.57 1.46 2.57 2.93V21a.75.75 0 01-1.085.67L12 18.089l-7.165 3.583A.75.75 0 013.75 21V5.507c0-1.47 1.073-2.756 2.57-2.93z" />
+      </svg>
+    );
+  }
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.9}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      {...props}
+    >
+      <path d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
+    </svg>
+  );
+}
+
+export function IconClipboard({
+  className = "w-4 h-4",
+  ...props
+}: IconProps) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.9}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      {...props}
+    >
+      <rect x="8" y="4" width="8" height="4" rx="1.25" />
+      <path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2" />
+    </svg>
+  );
+}
+
+/**
+ * Custom geometric brand logo mark for ATRC (Apex Horizon Crest).
+ * Uses static solid colors/CSS vars so hidden responsive mounts never break SVG gradient IDs.
+ */
+export function IconLogoATRC({
+  className = "w-6 h-6",
+  ...props
+}: IconProps) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 36 36"
+      fill="none"
+      aria-hidden="true"
+      {...props}
+    >
+      <rect x="1.5" y="1.5" width="33" height="33" rx="10" fill="#130d1e" />
+      <rect
+        x="1.5"
+        y="1.5"
+        width="33"
+        height="33"
+        rx="10"
+        stroke="rgba(244, 114, 182, 0.36)"
+        strokeWidth="1.25"
+      />
+      <ellipse
+        cx="18"
+        cy="19"
+        rx="11"
+        ry="3.2"
+        transform="rotate(-16 18 19)"
+        stroke="#c084fc"
+        strokeOpacity="0.45"
+        strokeWidth="1.3"
+      />
+      <path
+        d="M18 8.5L11.8 25.5H14.8L18 16.2L21.2 25.5H24.2L18 8.5Z"
+        fill="#f8f6fb"
+      />
+      <path
+        d="M7.2 22.4C10.8 24.4 22.4 22.4 28.8 16.5"
+        stroke="#130d1e"
+        strokeWidth="3.2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M7.2 22.4C10.8 24.4 22.4 22.4 28.8 16.5"
+        stroke="#f472b6"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+      <circle cx="18" cy="8.2" r="1.45" fill="#fbcfe8" />
+    </svg>
+  );
+}
+
+

@@ -3,7 +3,7 @@
   "name": "pstui",
   "version": "0.2.0",
   "description": "Modern Liquid Glass Web Design System on Next.js 16, Tailwind CSS v4, and DaisyUI 5",
-  "generatedAt": "2026-11-08T08:15:59.177Z",
+  "generatedAt": "2026-11-13T13:32:43.844Z",
   "framework": {
     "next": "16.4.3",
     "react": "19.3.0",
@@ -50,21 +50,21 @@
     "components/ui/FeedbackClient.tsx": "sha256:42e6e9846d7ba07c19126c8f5a0f296c2b606ec72f5e32a189610bbd4421ef51",
     "components/ui/Input.tsx": "sha256:715eb22aa32d2b000d8a0f654f865a329cc508874d08ba98b1d10d74a2cf7f46",
     "components/ui/Navigation.tsx": "sha256:d2e677d1df2812bde765e1cc32be5a58b8bb891ff5b3ecd0aca989cb52844f29",
-    "components/ui/NavigationClient.tsx": "sha256:4c7febf1a7d78eae5d1fa78d40e2f12da0e5c3aee4ecd0019cae286df41af780",
-    "components/ui/OfflineBanner.tsx": "sha256:898a317e0ff027e0a6101eb8f42f6a14edc2879949f075985aa6c32cc4ba9864",
+    "components/ui/NavigationClient.tsx": "sha256:9fe6bd81e2b1ff4f4606b20218a463009765aa468914dff29c8dbe07bc8f1bcf",
+    "components/ui/OfflineBanner.tsx": "sha256:86d7757b14acc12ccf5a2959cbcec30c9c33d43f25d561eb6bfc170d802345cd",
     "components/ui/Select.tsx": "sha256:ee76d2d42f902c98d6c2bf82b9ce6d624148dfd9d7a8ad057b7cd8d66ddefde9",
     "components/ui/Selection.tsx": "sha256:2c949fe22f841bd2001b4cbf1a09cba033084cc0b50b8e54801b6e5b52465bc1",
     "components/ui/VirtualList.tsx": "sha256:10a4d50e6c1693438702df976cbe280549fea70691e284f0116563318240b580",
-    "components/ui/icons.tsx": "sha256:e61b4789ff4770d1e64f4db428fc08e1375072cb713a0ed0c50797236ab1cd23",
+    "components/ui/icons.tsx": "sha256:03f47fa2421c24574e3fefcaa9f59760f859614f50e023108598526f8d09c760",
     "components/ui/index.ts": "sha256:9419f3c6e12d38658022d928c2e01813dd7fb7c8d2ad1b31055b4943ef353901",
-    "components/layout/AppShell.tsx": "sha256:56ae016371352945017ff1f92cae7bfafff402e5b5148d34ab0868728e0d36eb",
+    "components/layout/AppShell.tsx": "sha256:4ba14c2226e973cf02d0ae42aca8a34edb7987bfbcc2b702f393d8fdf9ea7e37",
     "context/OverlayContext.tsx": "sha256:403f003720dcb76ae00fe7aa59f4827320ceb1e502e4783e66698af747102004",
     "context/AuthContext.tsx": "sha256:7e472fe589fc28e09b242c2afb6a604a4ff8549b5974d6e730bb62215d8dc255",
     "components/providers/ClientRuntimeProvider.tsx": "sha256:307f2d8ead2a35c41fdf81ffb34841d260f82ecd56c97c566044a2cfd6dd4545",
     "lib/haptics.ts": "sha256:6950c49fb6d297c30a188ab518e875d95d1edb1c8153d4b669b3dc88a9363104",
     "lib/offlineQueue.ts": "sha256:aceb3c1b585e8db2112cbf722e8d55acb589719d77a33961dd2c7d000456bd2a",
-    "lib/server/metrics.ts": "sha256:02515dc6c4dfebcc5cfc9b022ec4e8de35960bdd02d7e4135baf7e3105e3ced0",
+    "lib/server/metrics.ts": "sha256:35a5aa35d4e3041b2c6b21b74c4d7755d1d6d55bb6d62dcf67061ff8b7923ae0",
     "lib/firebase/firebaseConfig.ts": "sha256:965aa194837d39da7b872a66f2099e8a1bdbd1d36a8757bfb6ae54b4c25b0e0f",
-    "styles/pstui-tokens.css": "sha256:8f8db1b6d07b61c8e5f8bdb0cf7364974c2b4cd56b1ac6d4f75c7e61ea6cd666"
+    "styles/pstui-tokens.css": "sha256:3b06e70a17406257d8ce19878c3053ec1f3f0d625e7ba617485cf8e1915b227b"
   }
 }

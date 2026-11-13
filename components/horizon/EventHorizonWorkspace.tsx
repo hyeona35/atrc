@@ -25,6 +25,7 @@ import type {
   LiveFrontierModel,
   LiveIntelPayload,
   LiveSignalItem,
+  PredictionMarketItem,
 } from "@/lib/server/liveIntel";
 import {
   probeInitialOnDeviceStatus,
@@ -54,7 +55,7 @@ export const HORIZON_PAGE_CONFIG: {
   pageSubtitle: string;
   sections: Record<HorizonSectionId, SectionMeta>;
 } = {
-  pageTitle: "Event Horizon",
+  pageTitle: "ATRC",
   pageSubtitle:
     "실시간 AI 시그널 자동 요약, 인물 X 모아보기 및 특이점 · 거시 전환 관측소",
   sections: {
@@ -71,7 +72,7 @@ export const HORIZON_PAGE_CONFIG: {
     "x-feed": {
       title: "인물 X 피드",
       badge: "개인 API 연동",
-      description: "쿠키 기반 개인 X API 키 저장 및 S~F 등급 24인 타임라인 통합 조회",
+      description: "쿠키 기반 개인 X API 키 저장 및 직접 검증 S~D 등급 30인 타임라인 통합 조회",
     },
     models: {
       title: "프론티어 지능",
@@ -153,6 +154,8 @@ const MOBILE_TAB_ITEMS: BottomBarItem[] = [
   },
 ];
 
+const SNAPSHOT_STORAGE_KEY = "eh_last_intel_snapshot_v1";
+
 function applyLocalSummaryCache(items: LiveSignalItem[]): LiveSignalItem[] {
   const cached = readCachedLocalSummaries();
   return items.map((item) => {
@@ -164,6 +167,28 @@ function applyLocalSummaryCache(items: LiveSignalItem[]): LiveSignalItem[] {
       summarizedBy: hit.engine,
     };
   });
+}
+
+function readOfflineSnapshot(): LiveIntelPayload | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(SNAPSHOT_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as LiveIntelPayload;
+    if (!Array.isArray(parsed?.signals)) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function writeOfflineSnapshot(payload: LiveIntelPayload) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(SNAPSHOT_STORAGE_KEY, JSON.stringify(payload));
+  } catch {
+    // Ignore storage quota issues
+  }
 }
 
 export interface EventHorizonWorkspaceProps {
@@ -185,6 +210,11 @@ export function EventHorizonWorkspace({
     useState<HorizonSectionId>(initialSection);
   const [signals, setSignals] = useState<LiveSignalItem[]>([]);
   const [liveModels, setLiveModels] = useState<LiveFrontierModel[]>([]);
+  const [predictionMarkets, setPredictionMarkets] = useState<
+    PredictionMarketItem[]
+  >([]);
+  const [dailyDigestKo, setDailyDigestKo] = useState<string>("");
+  const [isGeneratingDigest, setIsGeneratingDigest] = useState<boolean>(false);
   const [activeSources, setActiveSources] = useState<string[]>([]);
   const [updatedAtIso, setUpdatedAtIso] = useState<string | undefined>(
     undefined
@@ -213,9 +243,16 @@ export function EventHorizonWorkspace({
         const mergedSignals = applyLocalSummaryCache(payload.signals ?? []);
         setSignals(mergedSignals);
         setLiveModels(payload.liveModels ?? []);
+        setPredictionMarkets(payload.predictionMarkets ?? []);
+        if (payload.dailyDigestKo) {
+          setDailyDigestKo(payload.dailyDigestKo);
+        }
         setActiveSources(payload.activeSources ?? []);
         setUpdatedAtIso(payload.updatedAtIso);
         setLiveStats(payload.stats);
+        if (mergedSignals.length > 0) {
+          writeOfflineSnapshot(payload);
+        }
 
         if (forceRefresh) {
           showToast({
@@ -225,10 +262,22 @@ export function EventHorizonWorkspace({
           });
         }
       } catch {
+        const snap = readOfflineSnapshot();
+        if (snap) {
+          setSignals(applyLocalSummaryCache(snap.signals ?? []));
+          setLiveModels(snap.liveModels ?? []);
+          setPredictionMarkets(snap.predictionMarkets ?? []);
+          if (snap.dailyDigestKo) setDailyDigestKo(snap.dailyDigestKo);
+          setActiveSources(snap.activeSources ?? []);
+          setUpdatedAtIso(snap.updatedAtIso);
+          setLiveStats(snap.stats);
+        }
         if (forceRefresh) {
           showToast({
             title: "피드 갱신 지연",
-            description: "네트워크 상태를 확인한 뒤 다시 시도해 주세요.",
+            description: snap
+              ? "오프라인 캐시 스냅샷을 표시합니다. 연결 복구 시 자동 재동기화됩니다."
+              : "네트워크 상태를 확인한 뒤 다시 시도해 주세요.",
             variant: "warning",
           });
         }
@@ -329,6 +378,34 @@ export function EventHorizonWorkspace({
     [showToast]
   );
 
+  const handleGenerateDailyDigest = useCallback(async () => {
+    if (signals.length === 0) return;
+    setIsGeneratingDigest(true);
+    try {
+      const combinedSource = signals
+        .filter((s) => !s.isHypeWarning)
+        .slice(0, 5)
+        .map((s) => `[${s.sourceName}] ${s.titleOriginal}: ${s.summaryOriginal}`)
+        .join("\n");
+      const result = await summarizeWithBestEngine(
+        `daily-digest-${signals[0]?.id ?? "latest"}`,
+        "오늘의 AI · 특이점 시그널 통합 브리핑",
+        combinedSource,
+        true
+      );
+      if (result) {
+        setDailyDigestKo(result.summaryKo);
+        showToast({
+          title: "통합 브리핑 생성 완료",
+          description: `${result.engine}로 오늘의 주요 시그널을 통합 요약했습니다.`,
+          variant: "success",
+        });
+      }
+    } finally {
+      setIsGeneratingDigest(false);
+    }
+  }, [signals, showToast]);
+
   const handleBatchSummarizeVisible = useCallback(async () => {
     const targets = signals.slice(0, 4);
     for (const item of targets) {
@@ -392,7 +469,7 @@ export function EventHorizonWorkspace({
     if (outcome === "accepted") {
       showToast({
         title: "앱 설치 완료",
-        description: "Event Horizon이 독립형 앱으로 설치되었습니다.",
+        description: "ATRC가 독립형 앱으로 설치되었습니다.",
         variant: "success",
       });
     } else if (outcome === "manual_guide_needed") {
@@ -473,7 +550,7 @@ export function EventHorizonWorkspace({
       },
       {
         id: "action-pwa-install",
-        title: "Event Horizon 앱 설치 (PWA)…",
+        title: "ATRC 앱 설치 (PWA)…",
         category: "자동화 및 앱",
         icon: <IconDownload className="w-4 h-4" />,
         keywords: ["pwa", "install", "설치", "앱"],
@@ -504,11 +581,11 @@ export function EventHorizonWorkspace({
         <button
           type="button"
           onClick={handleQuickInstallPwa}
-          aria-label="Event Horizon 앱 설치"
-          className="min-h-11 px-3 rounded-2xl text-xs font-semibold inline-flex items-center gap-1.5 border border-base-content/12 bg-base-100/70 hover:bg-base-100 text-base-content transition-colors pst-press"
+          aria-label="ATRC 앱 설치"
+          className="min-h-11 px-2.5 lg:px-3 rounded-2xl text-xs font-semibold inline-flex items-center gap-1.5 border border-base-content/12 bg-base-100/70 hover:bg-base-100 text-base-content transition-colors pst-press"
         >
-          <IconDownload className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">앱 설치</span>
+          <IconDownload className="w-3.5 h-3.5 shrink-0" />
+          <span className="hidden lg:inline">앱 설치</span>
         </button>
       )}
 
@@ -540,7 +617,7 @@ export function EventHorizonWorkspace({
       onSelectSection={handleSelectSection}
       title={pageTitle}
       subtitle={pageSubtitle}
-      brandLabel="Event Horizon"
+      brandLabel="ATRC"
       sectionTitles={sections}
       sidebarItems={SIDEBAR_NAV_ITEMS}
       mobileTabs={MOBILE_TAB_ITEMS}
@@ -555,12 +632,19 @@ export function EventHorizonWorkspace({
       <div className="max-w-4xl mx-auto py-4 sm:py-8 space-y-14 sm:space-y-20">
         {activeSection === "overview" && (
           <>
-            <HeroMultiClock liveStats={liveStats} />
+            <HeroMultiClock
+              liveStats={liveStats}
+              predictionMarkets={predictionMarkets}
+            />
 
             <SignalRadarColumn
               signals={signals}
+              activeSources={activeSources}
               isLoading={isLoadingIntel}
               updatedAtIso={updatedAtIso}
+              dailyDigestKo={dailyDigestKo}
+              isGeneratingDigest={isGeneratingDigest}
+              onGenerateDigest={handleGenerateDailyDigest}
               onRefreshLive={() => fetchLiveIntel(true, false)}
               onResummarizeItem={handleResummarizeItem}
               resummarizingId={resummarizingId}
@@ -582,8 +666,12 @@ export function EventHorizonWorkspace({
         {activeSection === "signals" && (
           <SignalRadarColumn
             signals={signals}
+            activeSources={activeSources}
             isLoading={isLoadingIntel}
             updatedAtIso={updatedAtIso}
+            dailyDigestKo={dailyDigestKo}
+            isGeneratingDigest={isGeneratingDigest}
+            onGenerateDigest={handleGenerateDailyDigest}
             onRefreshLive={() => fetchLiveIntel(true, false)}
             onResummarizeItem={handleResummarizeItem}
             resummarizingId={resummarizingId}

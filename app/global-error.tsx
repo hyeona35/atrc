@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 
 export default function GlobalError({
   error,
@@ -36,7 +36,7 @@ export default function GlobalError({
 
           <div className="space-y-2">
             <h1 className="text-2xl font-bold tracking-tight">
-              시스템 복구 모드
+              치명적인 오류
             </h1>
             <p className="text-sm text-slate-300 leading-relaxed">
               치명적인 렌더링 오류가 발생했습니다. 아래 버튼을 눌러 애플리케이션을 초기화하십시오.

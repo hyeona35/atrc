@@ -28,6 +28,16 @@ export interface LiveFrontierModel {
   promptPricePerMillion: string;
   completionPricePerMillion: string;
   modality: string;
+  isOpenWeight?: boolean;
+}
+
+export interface PredictionMarketItem {
+  id: string;
+  titleOriginal: string;
+  titleKo: string;
+  yesProbabilityPercent: number;
+  volumeUsd: number;
+  url: string;
 }
 
 export interface LiveIntelPayload {
@@ -35,10 +45,13 @@ export interface LiveIntelPayload {
   activeSources: string[];
   signals: LiveSignalItem[];
   liveModels: LiveFrontierModel[];
+  predictionMarkets: PredictionMarketItem[];
+  dailyDigestKo: string;
   stats: {
     totalSignalsFetched: number;
     liveModelsTracked: number;
     reasoningAndAgentPaperRatioPercent: number;
+    openWeightModelsCount?: number;
   };
 }
 
@@ -117,17 +130,20 @@ function parseRssItems(
   xml: string,
   sourceName: string,
   sourceKind: LiveSignalCategory,
-  limit = 5
+  limit = 5,
+  metricsLabel?: string
 ): RawSignalCandidate[] {
   const items: RawSignalCandidate[] = [];
-  const itemBlocks = xml.match(/<item[\s\S]*?<\/item>/gi) ?? [];
+  const rx = /<item[\s\S]*?<\/item>/gi;
+  let blockMatch: RegExpExecArray | null;
 
-  for (const block of itemBlocks.slice(0, limit)) {
+  while (items.length < limit && (blockMatch = rx.exec(xml)) !== null) {
+    const block = blockMatch[0];
     const titleMatch = block.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
     const linkMatch = block.match(/<link[^>]*>([\s\S]*?)<\/link>/i);
     const descMatch =
       block.match(/<description[^>]*>([\s\S]*?)<\/description>/i) ??
-      block.match(/<content:encoded[^>]*>([\s\S]*?)<\/content:encoded>/i);
+      block.match(/<content:encoded[^>]*>([\s\S]{0,1600})[\s\S]*?<\/content:encoded>/i);
     const dateMatch =
       block.match(/<pubDate[^>]*>([\s\S]*?)<\/pubDate>/i) ??
       block.match(/<dc:date[^>]*>([\s\S]*?)<\/dc:date>/i);
@@ -154,8 +170,60 @@ function parseRssItems(
         distillTwoSentences(rawDesc) ||
         `${sourceName} 공식 채널을 통해 공개된 최신 연구 및 프로덕트 발표입니다.`,
       url,
+      metricsLabel,
     });
   }
+  return items;
+}
+
+function parseAnthropicNews(html: string, limit = 4): RawSignalCandidate[] {
+  const items: RawSignalCandidate[] = [];
+  const seenUrls = new Set<string>();
+  const cardRx = /<article[^>]*class="[^"]*W1FydW_(?:featured|tile)[^"]*"[^>]*>[\s\S]*?<\/article>/gi;
+  let cardMatch: RegExpExecArray | null;
+
+  while (items.length < limit && (cardMatch = cardRx.exec(html)) !== null) {
+    const block = cardMatch[0];
+    const tileLinkMatch =
+      block.match(/class="[^"]*W1FydW_tileLink[^"]*"[^>]*href="(\/[^"#?]+)"/i) ??
+      block.match(/href="(\/[^"#?]+)"[^>]*class="[^"]*W1FydW_tileLink[^"]*"/i);
+    const href = tileLinkMatch?.[1];
+    if (!href || /^\/news\/(?:announcements|features|category)\b/i.test(href)) {
+      continue;
+    }
+
+    const fullUrl = `https://www.anthropic.com${href}`;
+    if (seenUrls.has(fullUrl)) continue;
+    seenUrls.add(fullUrl);
+
+    const headlineMatch =
+      block.match(/data-component="Headline"[^>]*>([\s\S]*?)<\/h[1-6]>/i) ??
+      block.match(/<h[2-6][^>]*>([\s\S]*?)<\/h[2-6]>/i);
+    const bodyMatch = block.match(/data-component="Body"[^>]*>([\s\S]*?)<\/p>/i);
+    const timeMatch = block.match(/<time[^>]*>([\s\S]*?)<\/time>/i);
+
+    const title = decodeEntities(headlineMatch?.[1] ?? "");
+    const rawDesc = decodeEntities(bodyMatch?.[1] ?? "");
+    const parsedMs = timeMatch?.[1] ? Date.parse(decodeEntities(timeMatch[1])) : NaN;
+    const publishedMs = Number.isFinite(parsedMs) ? parsedMs : Date.now();
+
+    if (!title || title.length < 8) continue;
+
+    const urlHash = crypto.createHash("sha256").update(fullUrl).digest("hex").slice(0, 16);
+    items.push({
+      id: `rss-anthropic-${urlHash}`,
+      sourceName: "Anthropic",
+      sourceKind: "official",
+      publishedMs,
+      publishedIso: new Date(publishedMs).toISOString(),
+      titleOriginal: title,
+      summaryOriginal:
+        distillTwoSentences(rawDesc) ||
+        `${title}. Anthropic 공식 뉴스룸을 통해 공개된 최신 모델·정책·안전 발표입니다.`,
+      url: fullUrl,
+    });
+  }
+
   return items;
 }
 
@@ -336,6 +404,15 @@ function formatPricePerMillion(rawPerToken: string | undefined): string {
   return `$${perMillion.toFixed(2)}`;
 }
 
+const OPEN_WEIGHT_PREFIXES = new Set([
+  "meta-llama",
+  "deepseek",
+  "qwen",
+  "moonshotai",
+  "mistralai",
+  "liquid",
+]);
+
 const MAJOR_FRONTIER_PREFIXES: Record<string, string> = {
   openai: "OpenAI",
   anthropic: "Anthropic",
@@ -349,6 +426,78 @@ const MAJOR_FRONTIER_PREFIXES: Record<string, string> = {
   liquid: "Liquid AI",
 };
 
+interface PolymarketRawEvent {
+  id?: string | number;
+  slug?: string;
+  title?: string;
+  volume?: number;
+  markets?: Array<{
+    question?: string;
+    outcomePrices?: string;
+  }>;
+}
+
+async function parsePolymarketMarkets(rawEvents: PolymarketRawEvent[]): Promise<PredictionMarketItem[]> {
+  const aiTechnicalRegex =
+    /\b(agi|gpt|claude|gemini|deepseek|openai|anthropic|superintelligence|frontier model|best ai|top ai|benchmark|llama|grok|qwen|ipo)\b/i;
+  const gossipExcludeRegex = /\b(divorce|affair|marry|kiss|jail|arrest|dating|baby|pregnant|taylor swift)\b/i;
+
+  const filtered = rawEvents
+    .filter((ev) => {
+      const title = ev.title ?? "";
+      if (!title || !ev.slug) return false;
+      if (gossipExcludeRegex.test(title)) return false;
+      if (!aiTechnicalRegex.test(title)) return false;
+      const m0 = ev.markets?.[0];
+      if (!m0?.outcomePrices) return false;
+      try {
+        const prices = JSON.parse(m0.outcomePrices) as string[];
+        const p = Number.parseFloat(prices[0] ?? "");
+        return Number.isFinite(p) && p > 0.005 && p < 0.995;
+      } catch {
+        return false;
+      }
+    })
+    .slice(0, 5);
+
+  return Promise.all(
+    filtered.map(async (ev) => {
+      const m0 = ev.markets![0]!;
+      const prices = JSON.parse(m0.outcomePrices!) as string[];
+      const yesProb = Math.round(Number.parseFloat(prices[0] ?? "0") * 1000) / 10;
+      const titleOriginal = ev.title!.trim();
+      const titleKo = (await translateTextToKorean(titleOriginal)) ?? titleOriginal;
+
+      return {
+        id: `poly-${ev.id ?? ev.slug}`,
+        titleOriginal,
+        titleKo,
+        yesProbabilityPercent: yesProb,
+        volumeUsd: Math.round(ev.volume ?? 0),
+        url: `https://polymarket.com/event/${ev.slug}`,
+      };
+    })
+  );
+}
+
+function buildDailyDigestKo(signals: LiveSignalItem[], markets: PredictionMarketItem[]): string {
+  const highlights = signals
+    .filter((s) => !s.isHypeWarning)
+    .slice(0, 3)
+    .map((s) => `[${s.sourceName}] ${s.titleKo}`);
+
+  const leadMarket = markets[0];
+  const marketTail = leadMarket
+    ? ` 예측 시장에서는 '${leadMarket.titleKo}' 확률이 ${leadMarket.yesProbabilityPercent}%로 반영되고 있습니다.`
+    : "";
+
+  if (highlights.length === 0) {
+    return "수집된 최신 공식 발표와 논문 시그널을 정리하는 중입니다.";
+  }
+
+  return `주요 관측 요약: ${highlights.join(" · ")}.${marketTail}`;
+}
+
 export async function fetchLiveIntelligence(
   forceRefresh = false
 ): Promise<LiveIntelPayload> {
@@ -360,36 +509,96 @@ export async function fetchLiveIntelligence(
   const activeSources: string[] = [];
   const rawCandidates: RawSignalCandidate[] = [];
   let liveModels: LiveFrontierModel[] = [];
+  let predictionMarkets: PredictionMarketItem[] = [];
   let reasoningPaperRatio = 46;
 
-  const [openaiRes, deepmindRes, hfRes, arxivRes, hnRes, openRouterRes] =
-    await Promise.allSettled([
-      fetch("https://openai.com/news/rss.xml", {
-        signal: AbortSignal.timeout(6000),
-      }).then((r) => (r.ok ? r.text() : Promise.reject(new Error("openai")))),
-      fetch("https://deepmind.google/blog/rss.xml", {
-        signal: AbortSignal.timeout(6000),
-      }).then((r) => (r.ok ? r.text() : Promise.reject(new Error("deepmind")))),
-      fetch("https://huggingface.co/api/daily_papers?limit=7", {
-        signal: AbortSignal.timeout(6000),
-      }).then((r) => (r.ok ? r.json() : Promise.reject(new Error("hf")))),
-      fetch(
-        "https://export.arxiv.org/api/query?search_query=cat:cs.AI+OR+cat:cs.CL+OR+cat:cs.LG&sortBy=submittedDate&sortOrder=descending&max_results=12",
-        { signal: AbortSignal.timeout(6500) }
-      ).then((r) => (r.ok ? r.text() : Promise.reject(new Error("arxiv")))),
-      fetch(
-        "https://hn.algolia.com/api/v1/search_by_date?tags=story&numericFilters=points>40&query=OpenAI%20OR%20Anthropic%20OR%20Claude%20OR%20Gemini%20OR%20DeepMind%20OR%20AGI%20OR%20DeepSeek%20OR%20Qwen&hitsPerPage=8",
-        { signal: AbortSignal.timeout(5500) }
-      ).then((r) => (r.ok ? r.json() : Promise.reject(new Error("hn")))),
-      fetch("https://openrouter.ai/api/v1/models", {
-        signal: AbortSignal.timeout(6500),
-      }).then((r) => (r.ok ? r.json() : Promise.reject(new Error("openrouter")))),
-    ]);
+  const [
+    openaiRes,
+    anthropicRes,
+    deepmindRes,
+    mistralRes,
+    metrRes,
+    hfRes,
+    hfBlogRes,
+    arxivRes,
+    hnRes,
+    githubRes,
+    openRouterRes,
+    polymarketTagRes,
+    polymarketAgiRes,
+  ] = await Promise.allSettled([
+    fetch("https://openai.com/news/rss.xml", {
+      signal: AbortSignal.timeout(6000),
+    }).then((r) => (r.ok ? r.text() : Promise.reject(new Error("openai")))),
+    fetch("https://www.anthropic.com/news", {
+      headers: { "User-Agent": "Mozilla/5.0" },
+      signal: AbortSignal.timeout(6000),
+    }).then((r) => (r.ok ? r.text() : Promise.reject(new Error("anthropic")))),
+    fetch("https://deepmind.google/blog/rss.xml", {
+      signal: AbortSignal.timeout(6000),
+    }).then((r) => (r.ok ? r.text() : Promise.reject(new Error("deepmind")))),
+    fetch("https://mistral.ai/news/rss", {
+      signal: AbortSignal.timeout(5500),
+    }).then((r) => (r.ok ? r.text() : Promise.reject(new Error("mistral")))),
+    fetch("https://metr.org/feed.xml", {
+      signal: AbortSignal.timeout(6000),
+    }).then((r) =>
+      r.ok ? r.text().then((t) => t.slice(0, 320_000)) : Promise.reject(new Error("metr"))
+    ),
+    fetch("https://huggingface.co/api/daily_papers?limit=7", {
+      signal: AbortSignal.timeout(6000),
+    }).then((r) => (r.ok ? r.json() : Promise.reject(new Error("hf")))),
+    fetch("https://huggingface.co/blog/feed.xml", {
+      signal: AbortSignal.timeout(5500),
+    }).then((r) =>
+      r.ok ? r.text().then((t) => t.slice(0, 120_000)) : Promise.reject(new Error("hf-blog"))
+    ),
+    fetch(
+      "https://export.arxiv.org/api/query?search_query=cat:cs.AI+OR+cat:cs.CL+OR+cat:cs.LG&sortBy=submittedDate&sortOrder=descending&max_results=12",
+      { signal: AbortSignal.timeout(6500) }
+    ).then((r) => (r.ok ? r.text() : Promise.reject(new Error("arxiv")))),
+    fetch(
+      "https://hn.algolia.com/api/v1/search_by_date?tags=story&numericFilters=points>40&query=OpenAI%20OR%20Anthropic%20OR%20Claude%20OR%20Gemini%20OR%20DeepMind%20OR%20AGI%20OR%20DeepSeek%20OR%20Qwen&hitsPerPage=8",
+      { signal: AbortSignal.timeout(5500) }
+    ).then((r) => (r.ok ? r.json() : Promise.reject(new Error("hn")))),
+    fetch(
+      "https://api.github.com/search/repositories?q=(topic:llm+OR+topic:ai-agents+OR+topic:reasoning)+stars:>5000&sort=updated&order=desc&per_page=4",
+      {
+        headers: {
+          Accept: "application/vnd.github+json",
+          "User-Agent": "ATRCObservatory/1.0",
+        },
+        signal: AbortSignal.timeout(5500),
+      }
+    ).then((r) => (r.ok ? r.json() : Promise.reject(new Error("github")))),
+    fetch("https://openrouter.ai/api/v1/models", {
+      signal: AbortSignal.timeout(6500),
+    }).then((r) => (r.ok ? r.json() : Promise.reject(new Error("openrouter")))),
+    fetch(
+      "https://gamma-api.polymarket.com/events?active=true&closed=false&order=volume24hr&ascending=false&limit=25&tag_slug=ai",
+      {
+        headers: { Accept: "application/json" },
+        signal: AbortSignal.timeout(5500),
+      }
+    ).then((r) => (r.ok ? r.json() : Promise.reject(new Error("polymarket-ai")))),
+    fetch("https://gamma-api.polymarket.com/public-search?q=AGI", {
+      headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(5500),
+    }).then((r) => (r.ok ? r.json() : Promise.reject(new Error("polymarket-agi")))),
+  ]);
 
   if (openaiRes.status === "fulfilled") {
-    const parsed = parseRssItems(openaiRes.value, "OpenAI", "official", 4);
+    const parsed = parseRssItems(openaiRes.value, "OpenAI", "official", 3);
     if (parsed.length > 0) {
       activeSources.push("OpenAI");
+      rawCandidates.push(...parsed);
+    }
+  }
+
+  if (anthropicRes.status === "fulfilled") {
+    const parsed = parseAnthropicNews(anthropicRes.value, 3);
+    if (parsed.length > 0) {
+      activeSources.push("Anthropic");
       rawCandidates.push(...parsed);
     }
   }
@@ -399,10 +608,26 @@ export async function fetchLiveIntelligence(
       deepmindRes.value,
       "Google DeepMind",
       "official",
-      4
+      3
     );
     if (parsed.length > 0) {
       activeSources.push("Google DeepMind");
+      rawCandidates.push(...parsed);
+    }
+  }
+
+  if (mistralRes.status === "fulfilled") {
+    const parsed = parseRssItems(mistralRes.value, "Mistral AI", "official", 2);
+    if (parsed.length > 0) {
+      activeSources.push("Mistral AI");
+      rawCandidates.push(...parsed);
+    }
+  }
+
+  if (metrRes.status === "fulfilled") {
+    const parsed = parseRssItems(metrRes.value, "METR", "paper", 2, "공식 평가");
+    if (parsed.length > 0) {
+      activeSources.push("METR Evals");
       rawCandidates.push(...parsed);
     }
   }
@@ -432,6 +657,14 @@ export async function fetchLiveIntelligence(
         url: `https://huggingface.co/papers/${id}`,
         metricsLabel: upvotes ? `추천 ${upvotes}` : undefined,
       });
+    }
+  }
+
+  if (hfBlogRes.status === "fulfilled") {
+    const parsed = parseRssItems(hfBlogRes.value, "HF Tech Blog", "ecosystem", 2, "기술 리포트");
+    if (parsed.length > 0) {
+      activeSources.push("Hugging Face Blog");
+      rawCandidates.push(...parsed);
     }
   }
 
@@ -507,10 +740,65 @@ export async function fetchLiveIntelligence(
         promptPricePerMillion: formatPricePerMillion(m.pricing?.prompt),
         completionPricePerMillion: formatPricePerMillion(m.pricing?.completion),
         modality: m.architecture?.modality ?? "text->text",
+        isOpenWeight: OPEN_WEIGHT_PREFIXES.has(prefix),
       });
-      if (picked.length >= 12) break;
+      if (picked.length >= 20) break;
     }
     liveModels = picked;
+  }
+
+  if (githubRes.status === "fulfilled" && Array.isArray(githubRes.value?.items)) {
+    activeSources.push("GitHub OSS");
+    for (const repo of githubRes.value.items.slice(0, 2) as Array<{
+      id?: number;
+      full_name?: string;
+      description?: string;
+      html_url?: string;
+      stargazers_count?: number;
+      pushed_at?: string;
+    }>) {
+      if (!repo.full_name || !repo.html_url) continue;
+      const pushedMs = repo.pushed_at ? Date.parse(repo.pushed_at) : NaN;
+      const publishedMs = Number.isFinite(pushedMs) ? pushedMs : now;
+      const stars = typeof repo.stargazers_count === "number" ? repo.stargazers_count : 0;
+      const starLabel = stars >= 1000 ? `★ ${(stars / 1000).toFixed(1)}K` : `★ ${stars}`;
+
+      rawCandidates.push({
+        id: `gh-${repo.id ?? crypto.createHash("sha256").update(repo.html_url).digest("hex").slice(0, 12)}`,
+        sourceName: "GitHub AI OSS",
+        sourceKind: "ecosystem",
+        publishedMs,
+        publishedIso: new Date(publishedMs).toISOString(),
+        titleOriginal: `${repo.full_name} open-source AI release update`,
+        summaryOriginal:
+          distillTwoSentences(repo.description || "") ||
+          `${repo.full_name} is an active open-source AI/agent project receiving recent developer updates.`,
+        url: repo.html_url,
+        metricsLabel: starLabel,
+      });
+    }
+  }
+
+  const combinedPolyEvents: PolymarketRawEvent[] = [];
+  if (polymarketAgiRes.status === "fulfilled") {
+    const agiData = polymarketAgiRes.value as { events?: PolymarketRawEvent[] } | PolymarketRawEvent[];
+    const list = Array.isArray(agiData) ? agiData : agiData?.events ?? [];
+    combinedPolyEvents.push(...list);
+  }
+  if (polymarketTagRes.status === "fulfilled" && Array.isArray(polymarketTagRes.value)) {
+    combinedPolyEvents.push(...(polymarketTagRes.value as PolymarketRawEvent[]));
+  }
+  if (combinedPolyEvents.length > 0) {
+    const seenPolySlugs = new Set<string>();
+    const dedupPoly = combinedPolyEvents.filter((ev) => {
+      if (!ev.slug || seenPolySlugs.has(ev.slug)) return false;
+      seenPolySlugs.add(ev.slug);
+      return true;
+    });
+    predictionMarkets = await parsePolymarketMarkets(dedupPoly);
+    if (predictionMarkets.length > 0) {
+      activeSources.push("Polymarket AI");
+    }
   }
 
   // Deduplicate candidates by normalized title prefix & sort newest first
@@ -526,7 +814,7 @@ export async function fetchLiveIntelligence(
       seenTitles.add(norm);
       return true;
     })
-    .slice(0, 18);
+    .slice(0, 24);
 
   // Translate & summarize in parallel with caching
   const signals: LiveSignalItem[] = await Promise.all(
@@ -565,10 +853,13 @@ export async function fetchLiveIntelligence(
     activeSources,
     signals,
     liveModels,
+    predictionMarkets,
+    dailyDigestKo: buildDailyDigestKo(signals, predictionMarkets),
     stats: {
       totalSignalsFetched: signals.length,
       liveModelsTracked: liveModels.length,
       reasoningAndAgentPaperRatioPercent: reasoningPaperRatio,
+      openWeightModelsCount: liveModels.filter((m) => m.isOpenWeight).length,
     },
   };
 

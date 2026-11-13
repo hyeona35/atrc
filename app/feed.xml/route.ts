@@ -11,9 +11,9 @@ export async function GET(request: Request) {
   const rss = `<?xml version="1.0" encoding="UTF-8" ?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>Event Horizon — 실시간 AI 시그널 · 특이점 관측소</title>
+    <title>ATRC — 실시간 AI 시그널 · 특이점 관측소</title>
     <link>${siteUrl}</link>
-    <description>OpenAI, Google DeepMind, arXiv, Hugging Face 최신 시그널 한국어 자동 요약 피드</description>
+    <description>OpenAI, Anthropic, Google DeepMind, Mistral AI, METR, arXiv, Hugging Face 최신 시그널 한국어 자동 요약 피드</description>
     <language>ko-KR</language>
     <lastBuildDate>${nowRfc}</lastBuildDate>
     <atom:link href="${siteUrl}/feed.xml" rel="self" type="application/rss+xml" />
