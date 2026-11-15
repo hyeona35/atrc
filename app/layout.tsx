@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
+import Script from "next/script";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import { ViewTransitions } from "next-view-transitions";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
@@ -167,6 +168,16 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-dvh flex flex-col selection:bg-primary/20 selection:text-primary">
+        <Script
+          id="gtm-loader"
+          src="https://www.googletagmanager.com/gtm.js?id=GTM-MWZK4QQK"
+          strategy="beforeInteractive"
+        />
+        <Script id="gtag-init" strategy="beforeInteractive">
+          {`window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());`}
+        </Script>
         <Suspense fallback={null}>
           <ViewTransitions>
             <ClientRuntimeProvider>

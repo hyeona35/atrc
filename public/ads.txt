@@ -1,2 +1,1 @@
-# ATRC — No programmatic ad networks enabled
-# https://iabtechlab.com/ads-txt/
+google.com, pub-6514289414091919, DIRECT, f08c47fec0942fa0
