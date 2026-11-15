@@ -1,5 +1,5 @@
 // ATRC PWA Service Worker (Installable App & Offline Shell Fallback)
-const CACHE_NAME = "atrc-v3";
+const CACHE_NAME = "atrc-v4";
 const SHELL_ASSETS = [
   "/",
   "/x-feed",

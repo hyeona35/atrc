@@ -1210,8 +1210,8 @@ export function IconClipboard({
 }
 
 /**
- * Custom geometric brand logo mark for ATRC (Apex Horizon Crest).
- * Uses static solid colors/CSS vars so hidden responsive mounts never break SVG gradient IDs.
+ * Custom pure-symbol brand logo mark for ATRC (Singularity Horizon Lens — no text/letters).
+ * Uses static solid colors/CSS vars so hidden responsive mounts never break SVG gradient/mask IDs.
  */
 export function IconLogoATRC({
   className = "w-6 h-6",
@@ -1235,33 +1235,51 @@ export function IconLogoATRC({
         stroke="rgba(244, 114, 182, 0.36)"
         strokeWidth="1.25"
       />
-      <ellipse
-        cx="18"
-        cy="19"
-        rx="11"
-        ry="3.2"
-        transform="rotate(-16 18 19)"
-        stroke="#c084fc"
-        strokeOpacity="0.45"
-        strokeWidth="1.3"
-      />
-      <path
-        d="M18 8.5L11.8 25.5H14.8L18 16.2L21.2 25.5H24.2L18 8.5Z"
-        fill="#f8f6fb"
-      />
-      <path
-        d="M7.2 22.4C10.8 24.4 22.4 22.4 28.8 16.5"
-        stroke="#130d1e"
-        strokeWidth="3.2"
-        strokeLinecap="round"
-      />
-      <path
-        d="M7.2 22.4C10.8 24.4 22.4 22.4 28.8 16.5"
-        stroke="#f472b6"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
-      <circle cx="18" cy="8.2" r="1.45" fill="#fbcfe8" />
+      <g transform="translate(18, 18)">
+        <circle cx="0" cy="0" r="12" fill="rgba(219, 82, 141, 0.14)" />
+        <ellipse
+          cx="0"
+          cy="0"
+          rx="14.6"
+          ry="4.6"
+          transform="rotate(-26)"
+          stroke="rgba(192, 132, 252, 0.42)"
+          strokeWidth="1.45"
+        />
+        <circle
+          cx="0"
+          cy="0"
+          r="7.2"
+          fill="#09070e"
+          stroke="rgba(240, 235, 255, 0.22)"
+          strokeWidth="0.7"
+        />
+        <path
+          d="M -8.45 -1.06 C -7.22 -6.86, -1.58 -10.21, 4.22 -8.62 C 7.57 -7.66, 9.33 -4.75, 8.98 -2.29 C 7.22 -5.10, 3.34 -6.60, -0.70 -6.16 C -4.22 -5.81, -7.04 -3.87, -8.45 -1.06 Z"
+          fill="#fbcfe8"
+        />
+        <path
+          d="M 8.45 1.06 C 7.22 6.86, 1.58 10.21, -4.22 8.62 C -7.57 7.66, -9.33 4.75, -8.98 2.29 C -7.22 5.10, -3.34 6.60, 0.70 6.16 C 4.22 5.81, 7.04 3.87, 8.45 1.06 Z"
+          fill="#db528d"
+        />
+        <g transform="rotate(-26)">
+          <path
+            d="M -10.32 3.25 A 14.6 4.6 0 0 0 10.32 3.25"
+            stroke="#130d1e"
+            strokeWidth="2.9"
+            strokeLinecap="round"
+          />
+          <path
+            d="M -14.6 0 A 14.6 4.6 0 0 0 14.6 0"
+            stroke="#f472b6"
+            strokeWidth="1.65"
+            strokeLinecap="round"
+          />
+        </g>
+        <circle cx="0" cy="0" r="3.0" fill="#09070e" />
+        <circle cx="0" cy="0" r="2.2" fill="#f9a8d4" />
+        <circle cx="-0.45" cy="-0.45" r="0.85" fill="#ffffff" />
+      </g>
     </svg>
   );
 }
