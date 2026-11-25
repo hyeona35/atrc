@@ -17,25 +17,31 @@ export default function manifest(): MetadataRoute.Manifest {
     lang: "ko",
     icons: [
       {
-        src: "/icons/atrc-192.png",
+        src: "/icons/atrc-apple-180.png?v=5",
+        sizes: "180x180",
+        type: "image/png",
+        purpose: "any",
+      },
+      {
+        src: "/icons/atrc-192.png?v=5",
         sizes: "192x192",
         type: "image/png",
         purpose: "any",
       },
       {
-        src: "/icons/atrc-192.png",
+        src: "/icons/atrc-192.png?v=5",
         sizes: "192x192",
         type: "image/png",
         purpose: "maskable",
       },
       {
-        src: "/icons/atrc-512.png",
+        src: "/icons/atrc-512.png?v=5",
         sizes: "512x512",
         type: "image/png",
         purpose: "any",
       },
       {
-        src: "/icons/atrc-512.png",
+        src: "/icons/atrc-512.png?v=5",
         sizes: "512x512",
         type: "image/png",
         purpose: "maskable",
@@ -46,13 +52,13 @@ export default function manifest(): MetadataRoute.Manifest {
         name: "관측 요약",
         short_name: "요약",
         url: "/",
-        icons: [{ src: "/icons/atrc-192.png", sizes: "192x192", type: "image/png" }],
+        icons: [{ src: "/icons/atrc-192.png?v=5", sizes: "192x192", type: "image/png" }],
       },
       {
         name: "주요 인물 X 피드",
         short_name: "X 피드",
         url: "/x-feed",
-        icons: [{ src: "/icons/atrc-192.png", sizes: "192x192", type: "image/png" }],
+        icons: [{ src: "/icons/atrc-192.png?v=5", sizes: "192x192", type: "image/png" }],
       },
     ],
   };

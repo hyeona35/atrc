@@ -3,19 +3,19 @@
   "name": "pstui",
   "version": "0.2.0",
   "description": "Modern Liquid Glass Web Design System on Next.js 16, Tailwind CSS v4, and DaisyUI 5",
-  "generatedAt": "2026-11-15T06:40:58.518Z",
+  "generatedAt": "2026-11-25T00:38:59.315Z",
   "framework": {
-    "next": "16.4.3",
-    "react": "19.3.0",
+    "next": "16.4.6",
+    "react": "19.3.1",
     "tailwindcss": "^4",
-    "daisyui": "^5.7.50"
+    "daisyui": "^5.8.2"
   },
   "dependencies": {
-    "@tanstack/react-virtual": "^3.14.22",
-    "daisyui": "^5.7.50",
-    "firebase": "^13.1.0",
+    "@tanstack/react-virtual": "^3.14.28",
+    "daisyui": "^5.8.2",
+    "firebase": "^13.4.0",
     "next-view-transitions": "^0.3.5",
-    "nuqs": "^2.10.2",
+    "nuqs": "^2.10.3",
     "server-only": "^0.0.1",
     "tailwindcss": "^4"
   },
@@ -55,7 +55,7 @@
     "components/ui/Select.tsx": "sha256:ee76d2d42f902c98d6c2bf82b9ce6d624148dfd9d7a8ad057b7cd8d66ddefde9",
     "components/ui/Selection.tsx": "sha256:2c949fe22f841bd2001b4cbf1a09cba033084cc0b50b8e54801b6e5b52465bc1",
     "components/ui/VirtualList.tsx": "sha256:10a4d50e6c1693438702df976cbe280549fea70691e284f0116563318240b580",
-    "components/ui/icons.tsx": "sha256:9d00d361b71a0dff56be9fb42f6c431f1a89e4080a2bf825a8a93d593f1ba1dc",
+    "components/ui/icons.tsx": "sha256:ddf67d5be806a42df15b3d7368b8c62d918755e947c88801cd294e8dd6d686bb",
     "components/ui/index.ts": "sha256:9419f3c6e12d38658022d928c2e01813dd7fb7c8d2ad1b31055b4943ef353901",
     "components/layout/AppShell.tsx": "sha256:4ba14c2226e973cf02d0ae42aca8a34edb7987bfbcc2b702f393d8fdf9ea7e37",
     "context/OverlayContext.tsx": "sha256:403f003720dcb76ae00fe7aa59f4827320ceb1e502e4783e66698af747102004",

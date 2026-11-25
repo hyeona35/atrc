@@ -513,7 +513,7 @@ export function FrontierModelsSection({
                 className="text-sm"
                 style={{ color: "var(--label-secondary)" }}
               >
-                인간의 개입 없이 소프트웨어·연구 과업을 완수하는 시간 지평이 약 7개월마다 2배씩 확장되고 있습니다.
+                인간의 개입 없이 검증 가능한 소프트웨어·최적화 과업을 완수하는 시간 지평이 약 3.6개월마다 2배씩 확장되고 있습니다.
               </p>
             </div>
 
@@ -522,7 +522,7 @@ export function FrontierModelsSection({
                 <svg
                   viewBox="0 0 680 210"
                   role="img"
-                  aria-label="2023년 6분에서 현재 16시간, AGI 기준선 40시간으로 이어지는 로그 스케일 추세선"
+                  aria-label="2023년 6분에서 현재 27시간, AGI 기준선 40시간으로 이어지는 로그 스케일 추세선"
                   className="w-full min-w-[480px] h-auto"
                 >
                   {/* Subtle horizontal log reference lines */}

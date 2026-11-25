@@ -88,10 +88,10 @@ export interface AuditChangelogItem {
 }
 
 /**
- * Deterministic SSR/Client baseline timestamp: 2026-11-08T13:00:00+09:00
+ * Deterministic SSR/Client baseline timestamp: 2026-11-25T09:00:00+09:00
  * Prevents synchronous Date.now() prerender errors under Next.js 16 cacheComponents: true.
  */
-export const BASELINE_ANCHOR_MS = 1794110400000;
+export const BASELINE_ANCHOR_MS = 1795564800000;
 
 export const ENSEMBLE_CLOCKS: EnsembleClockSpec[] = [
   {
@@ -104,9 +104,9 @@ export const ENSEMBLE_CLOCKS: EnsembleClockSpec[] = [
     definition:
       "코딩·커널 최적화·합성데이터 생성·보상 검증 등 닫힌 디지털 연구 루프에서 AI가 차세대 모델 개선 속도를 유의미하게 가속하기 시작하는 선행 임계점",
     keyProxies: [
-      { label: "프론티어 랩 학습·인프라 코드 AI 작성률", current: "78%+", target: "90%+" },
-      { label: "SWE-Bench Verified (자율 소프트웨어 공학)", current: "88.2%", target: "90%+" },
-      { label: "내부 AI R&D 연구 속도 승수", current: "1.5배", target: "2.0배 (점화)" },
+      { label: "프론티어 랩 학습·인프라 코드 AI 작성률", current: "82%+", target: "90%+" },
+      { label: "SWE-Bench Verified (자율 소프트웨어 공학)", current: "95.0%", target: "90%+ (도달)" },
+      { label: "내부 AI R&D 연구 속도 승수", current: "1.6배", target: "2.0배 (점화)" },
     ],
   },
   {
@@ -119,9 +119,9 @@ export const ENSEMBLE_CLOCKS: EnsembleClockSpec[] = [
     definition:
       "코딩에 국한되지 않고 비정형 행정·재무·과학·멀티모달 등 숙련된 인간 지식근로자의 주 40시간 범용 인지 과업을 중간 교정 없이 자율 완수하는 시점",
     keyProxies: [
-      { label: "METR 50% 자율 작업 지평", current: "16.0시간", target: "40시간" },
-      { label: "ARC-AGI-3 유동 추상 추론", current: "62.7%", target: "85%+" },
-      { label: "장기 컴퓨터 제어 · OSWorld", current: "74.5%", target: "90%+" },
+      { label: "METR TH2 검증 가능 50% 자율 지평", current: "27.0시간", target: "40시간" },
+      { label: "ARC-AGI-3 유동 추상 추론 (표준 하네스)", current: "81.2%", target: "85%+" },
+      { label: "장기 컴퓨터 제어 · OSWorld 2.0", current: "81.8%", target: "90%+" },
     ],
   },
   {
@@ -134,9 +134,9 @@ export const ENSEMBLE_CLOCKS: EnsembleClockSpec[] = [
     definition:
       "인간 연구자의 개입 없이 AI 에이전트 집단이 가설 수립·신규 아키텍처 발명·대규모 클러스터 본학습 및 검증 전체 주기의 과반을 단독 주도하는 시점",
     keyProxies: [
-      { label: "AI 단독 주도 프론티어 아키텍처 비중", current: "14.2%", target: "50.0%+" },
-      { label: "초장기 연구 자율 지평 (실패 복구 포함)", current: "16.0시간", target: "1,000시간" },
-      { label: "클러스터 실험 검증 R&D 가속 배수", current: "1.5배", target: "5.0배+" },
+      { label: "AI 단독 주도 프론티어 아키텍처 비중", current: "15.8%", target: "50.0%+" },
+      { label: "초장기 연구 자율 지평 (비검증 판단 포함)", current: "27.0시간", target: "1,000시간" },
+      { label: "클러스터 실험 검증 R&D 가속 배수", current: "1.6배", target: "5.0배+" },
     ],
   },
   {
@@ -149,8 +149,8 @@ export const ENSEMBLE_CLOCKS: EnsembleClockSpec[] = [
     definition:
       "기초과학·난제 수학·물리 공학 발견 전 영역에서 인류 전체의 최고 집단지성을 질적으로 초월하는 시점",
     keyProxies: [
-      { label: "Humanity's Last Exam (HLE)", current: "38.9%", target: "95.0%" },
-      { label: "FrontierMath 미해결 연구 수학", current: "41.7%", target: "95.0%+" },
+      { label: "Humanity's Last Exam (HLE)", current: "73.2%", target: "95.0%" },
+      { label: "FrontierMath: Erdős 미해결 형식증명", current: "4.4%", target: "80.0%+" },
       { label: "단일 연산 클러스터 규모", current: "1GW 캠퍼스", target: "5GW+ 자율 가동" },
     ],
   },
@@ -160,49 +160,49 @@ export const CORE_BENCHMARKS: UnsatBenchmarkItem[] = [
   {
     id: "arc-agi-3",
     name: "ARC-AGI-3",
-    domain: "미포화 추상 유동지능",
-    scorePercent: 62.7,
-    note: "2026년 3월 1% 미만에서 8개월 만에 급상승",
+    domain: "인터랙티브 미포화 유동지능 (표준 하네스)",
+    scorePercent: 81.2,
+    note: "Claude Fable 5.2 81.2% · GPT-6.2 Astra 70.3% (2026년 3월 <1%에서 급상승)",
     thresholdPercent: 85,
   },
   {
     id: "swebench-verified",
     name: "SWE-Bench Verified",
     domain: "자율 소프트웨어 공학",
-    scorePercent: 88.2,
-    note: "실전 저장소 이슈 해결 포화 근접",
+    scorePercent: 95.0,
+    note: "Claude Fable 5/5.2 95.0% 달성 · 실전 저장소 이슈 해결 포화 도달",
     thresholdPercent: 92,
   },
   {
     id: "biobasics",
     name: "BioBasicsBench",
-    domain: "웨트랩 생물학 프로토콜",
-    scorePercent: 66.7,
-    note: "실험 설계 역량 상승으로 생물안전 감사 병행",
+    domain: "웨트랩 생물학 원시 데이터 해석",
+    scorePercent: 67.0,
+    note: "OpenAI·Ligo 100개 실험 과제 · GPT-6 Astra 67.0% (생물안전 감사 병행)",
     thresholdPercent: 85,
   },
   {
     id: "frontier-math",
-    name: "FrontierMath v2",
-    domain: "연구급 수리 추론 (338문항 · Open Problems)",
-    scorePercent: 41.7,
-    note: "v2 오류 정정 반영 · 티어 4 및 Lean 형식증명 영역 추적 중",
-    thresholdPercent: 80,
+    name: "FrontierMath v2 (Tiers 1–3)",
+    domain: "연구급 수리 추론 (295문항 · 정정판)",
+    scorePercent: 95.1,
+    note: "Claude Fable 5.2 95.1% · Tier 4 포화 진입, Erdős 미해결 형식증명(4.4%) 추적 이행",
+    thresholdPercent: 95,
   },
   {
     id: "hle",
     name: "Humanity's Last Exam",
-    domain: "전 학문 최고난도 종합",
-    scorePercent: 38.9,
-    note: "단순 암기 배제 학술 추론 한계 측정",
+    domain: "전 학문 최고난도 종합 (도구 포함)",
+    scorePercent: 73.2,
+    note: "Claude Fable 5.2 73.2% · 단순 암기 배제 학술 추론 한계 빠르게 축소",
     thresholdPercent: 95,
   },
   {
     id: "arc-agi-2",
     name: "ARC-AGI-2",
     domain: "시각 규칙 추론 (기존 세대)",
-    scorePercent: 95.0,
-    note: "프론티어 모델군 사실상 포화 도달",
+    scorePercent: 95.8,
+    note: "GPT-6.2 Astra 95.8% · 프론티어 모델군 사실상 완전 포화",
     thresholdPercent: 95,
   },
 ];
@@ -213,7 +213,7 @@ export const METR_TRAJECTORY_POINTS = [
   { period: "25.Q2", model: "o3 / Opus 4", minutes: 95, label: "1.6h" },
   { period: "25.Q4", model: "Opus 4.5", minutes: 240, label: "4.0h" },
   { period: "26.Q2", model: "Opus 5", minutes: 480, label: "8.0h" },
-  { period: "현재", model: "Frontier SOTA", minutes: 960, label: "16.0h" },
+  { period: "현재", model: "TH2 Verifiable SOTA", minutes: 1620, label: "27.0h" },
   { period: "27.Q2*", model: "AGI 기준선", minutes: 2400, label: "40h" },
 ];
 

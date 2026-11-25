@@ -1,11 +1,12 @@
 // ATRC PWA Service Worker (Installable App & Offline Shell Fallback)
-const CACHE_NAME = "atrc-v4";
+const CACHE_NAME = "atrc-v5";
 const SHELL_ASSETS = [
   "/",
   "/x-feed",
   "/favicon.ico",
   "/apple-touch-icon.png",
   "/apple-touch-icon-precomposed.png",
+  "/icons/atrc-icon.svg",
   "/icons/atrc-apple-180.png",
   "/icons/atrc-192.png",
   "/icons/atrc-512.png",
@@ -59,12 +60,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  if (
-    url.pathname.startsWith("/_next/static/") ||
-    url.pathname.startsWith("/icons/") ||
-    url.pathname.endsWith(".png") ||
-    url.pathname.endsWith(".ico")
-  ) {
+  if (url.pathname.startsWith("/_next/static/")) {
     event.respondWith(
       caches.match(request).then(
         (cached) =>
@@ -77,6 +73,29 @@ self.addEventListener("fetch", (event) => {
             return response;
           })
       )
+    );
+    return;
+  }
+
+  if (
+    url.pathname.startsWith("/icons/") ||
+    url.pathname.endsWith(".png") ||
+    url.pathname.endsWith(".ico") ||
+    url.pathname.endsWith(".svg")
+  ) {
+    event.respondWith(
+      caches.match(request).then((cached) => {
+        const networkFetch = fetch(request)
+          .then((response) => {
+            if (response.ok) {
+              const clone = response.clone();
+              caches.open(CACHE_NAME).then((cache) => cache.put(request, clone)).catch(() => {});
+            }
+            return response;
+          })
+          .catch(() => cached);
+        return cached || networkFetch;
+      })
     );
   }
 });
