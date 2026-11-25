@@ -1210,8 +1210,8 @@ export function IconClipboard({
 }
 
 /**
- * Custom pure-symbol brand logo mark for ATRC (Singularity Horizon Lens — no text/letters).
- * Uses static solid colors/CSS vars so hidden responsive mounts never break SVG gradient/mask IDs.
+ * Minimalist pure-symbol brand logo mark for ATRC (Open Horizon Arc + Singularity Core — no text).
+ * Uses static solid colors so hidden responsive mounts never break SVG gradient/mask IDs.
  */
 export function IconLogoATRC({
   className = "w-6 h-6",
@@ -1225,61 +1225,14 @@ export function IconLogoATRC({
       aria-hidden="true"
       {...props}
     >
-      <rect x="1.5" y="1.5" width="33" height="33" rx="10" fill="#130d1e" />
-      <rect
-        x="1.5"
-        y="1.5"
-        width="33"
-        height="33"
-        rx="10"
-        stroke="rgba(244, 114, 182, 0.36)"
-        strokeWidth="1.25"
+      <rect x="0.75" y="0.75" width="34.5" height="34.5" rx="9" fill="#0B0912" />
+      <path
+        d="M 27.53 17.50 A 9.54 9.54 0 1 1 18.50 8.47"
+        stroke="#FAF9FC"
+        strokeWidth="2.75"
+        strokeLinecap="round"
       />
-      <g transform="translate(18, 18)">
-        <circle cx="0" cy="0" r="12" fill="rgba(219, 82, 141, 0.14)" />
-        <ellipse
-          cx="0"
-          cy="0"
-          rx="14.6"
-          ry="4.6"
-          transform="rotate(-26)"
-          stroke="rgba(192, 132, 252, 0.42)"
-          strokeWidth="1.45"
-        />
-        <circle
-          cx="0"
-          cy="0"
-          r="7.2"
-          fill="#09070e"
-          stroke="rgba(240, 235, 255, 0.22)"
-          strokeWidth="0.7"
-        />
-        <path
-          d="M -8.45 -1.06 C -7.22 -6.86, -1.58 -10.21, 4.22 -8.62 C 7.57 -7.66, 9.33 -4.75, 8.98 -2.29 C 7.22 -5.10, 3.34 -6.60, -0.70 -6.16 C -4.22 -5.81, -7.04 -3.87, -8.45 -1.06 Z"
-          fill="#fbcfe8"
-        />
-        <path
-          d="M 8.45 1.06 C 7.22 6.86, 1.58 10.21, -4.22 8.62 C -7.57 7.66, -9.33 4.75, -8.98 2.29 C -7.22 5.10, -3.34 6.60, 0.70 6.16 C 4.22 5.81, 7.04 3.87, 8.45 1.06 Z"
-          fill="#db528d"
-        />
-        <g transform="rotate(-26)">
-          <path
-            d="M -10.32 3.25 A 14.6 4.6 0 0 0 10.32 3.25"
-            stroke="#130d1e"
-            strokeWidth="2.9"
-            strokeLinecap="round"
-          />
-          <path
-            d="M -14.6 0 A 14.6 4.6 0 0 0 14.6 0"
-            stroke="#f472b6"
-            strokeWidth="1.65"
-            strokeLinecap="round"
-          />
-        </g>
-        <circle cx="0" cy="0" r="3.0" fill="#09070e" />
-        <circle cx="0" cy="0" r="2.2" fill="#f9a8d4" />
-        <circle cx="-0.45" cy="-0.45" r="0.85" fill="#ffffff" />
-      </g>
+      <circle cx="18" cy="18" r="3.05" fill="#F472B6" />
     </svg>
   );
 }

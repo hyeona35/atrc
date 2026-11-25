@@ -57,7 +57,7 @@ export const metadata: Metadata = {
     type: "website",
     images: [
       {
-        url: "/og-image.png",
+        url: "/og-image.png?v=5",
         width: 1200,
         height: 630,
         alt: "ATRC — 실시간 AI 시그널 · 특이점 관측소",
@@ -68,7 +68,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
-    images: ["/og-image.png"],
+    images: ["/og-image.png?v=5"],
   },
   appleWebApp: {
     capable: true,
@@ -81,20 +81,25 @@ export const metadata: Metadata = {
   manifest: "/manifest.webmanifest",
   icons: {
     icon: [
-      { url: "/favicon.ico" },
-      { url: "/icons/atrc-192.png", sizes: "192x192", type: "image/png" },
-      { url: "/icons/atrc-512.png", sizes: "512x512", type: "image/png" },
+      { url: "/icons/atrc-icon.svg?v=5", type: "image/svg+xml" },
+      { url: "/favicon.ico?v=5", sizes: "any" },
+      { url: "/icons/atrc-192.png?v=5", sizes: "192x192", type: "image/png" },
+      { url: "/icons/atrc-512.png?v=5", sizes: "512x512", type: "image/png" },
     ],
+    shortcut: [{ url: "/favicon.ico?v=5" }],
     apple: [
-      { url: "/icons/atrc-apple-180.png", sizes: "180x180", type: "image/png" },
-      { url: "/icons/atrc-apple-167.png", sizes: "167x167", type: "image/png" },
-      { url: "/icons/atrc-apple-152.png", sizes: "152x152", type: "image/png" },
-      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+      { url: "/apple-touch-icon.png?v=5", sizes: "180x180", type: "image/png" },
+      { url: "/icons/atrc-apple-167.png?v=5", sizes: "167x167", type: "image/png" },
+      { url: "/icons/atrc-apple-152.png?v=5", sizes: "152x152", type: "image/png" },
     ],
     other: [
       {
+        rel: "apple-touch-icon",
+        url: "/apple-touch-icon.png?v=5",
+      },
+      {
         rel: "apple-touch-icon-precomposed",
-        url: "/icons/atrc-apple-180.png",
+        url: "/apple-touch-icon-precomposed.png?v=5",
         sizes: "180x180",
       },
     ],

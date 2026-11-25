@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = "https://atrc.hyeona3.com";
-  const lastModified = new Date("2026-11-08T00:00:00+09:00");
+  const lastModified = new Date("2026-11-25T00:00:00+09:00");
 
   return [
     {
