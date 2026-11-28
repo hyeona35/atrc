@@ -33,11 +33,9 @@ import {
   summarizeWithBestEngine,
   useOnDeviceAi,
 } from "@/lib/ai/onDeviceLlm";
-import {
-  triggerPwaInstallPrompt,
-  usePwaInstall,
-} from "@/lib/pwaInstall";
+import { triggerPwaInstallPrompt } from "@/lib/pwaInstall";
 import { HeroMultiClock } from "./HeroMultiClock";
+import { IntelligenceVelocityChart } from "./IntelligenceVelocityChart";
 import { SignalRadarColumn } from "./SignalRadarColumn";
 import { FrontierModelsSection, MacroFutureSection } from "./CoreMetricsColumn";
 import { PersonalXFeedSection } from "./PersonalXFeedSection";
@@ -208,6 +206,8 @@ export function EventHorizonWorkspace({
 }: EventHorizonWorkspaceProps) {
   const [activeSection, setActiveSection] =
     useState<HorizonSectionId>(initialSection);
+  const [sectionHistory, setSectionHistory] = useState<HorizonSectionId[]>([]);
+  const [hasBrowserBack, setHasBrowserBack] = useState<boolean>(false);
   const [signals, setSignals] = useState<LiveSignalItem[]>([]);
   const [liveModels, setLiveModels] = useState<LiveFrontierModel[]>([]);
   const [predictionMarkets, setPredictionMarkets] = useState<
@@ -226,9 +226,25 @@ export function EventHorizonWorkspace({
   const [resummarizingId, setResummarizingId] = useState<string | null>(null);
 
   const aiStatus = useOnDeviceAi();
-  const pwaState = usePwaInstall();
   const { openModal } = useModal();
   const { showToast } = useToast();
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    let sameOriginReferrer = false;
+    try {
+      if (document.referrer) {
+        sameOriginReferrer =
+          new URL(document.referrer).origin === window.location.origin;
+      }
+    } catch {
+      sameOriginReferrer = false;
+    }
+    const timer = window.setTimeout(() => {
+      setHasBrowserBack(sameOriginReferrer && window.history.length > 1);
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   const fetchLiveIntel = useCallback(
     async (forceRefresh = false, silent = false) => {
@@ -441,9 +457,9 @@ export function EventHorizonWorkspace({
   const handleOpenAiModal = useCallback(() => {
     openModal({
       id: "on-device-ai-settings",
-      title: "앱 설치 · 실시간 수집 및 온디바이스 LLM",
+      title: "실시간 정보 · 앱 설치 및 온디바이스 LLM",
       description:
-        "PWA 독립 앱 설치, 자동 피드 수집 파이프라인, 브라우저 로컬 LLM 설정입니다.",
+        "실시간 수집 소스 현황, PWA 앱 설치 및 브라우저 로컬 AI 요약 설정입니다.",
       size: "md",
       content: (
         <OnDeviceAiModalBody
@@ -477,24 +493,51 @@ export function EventHorizonWorkspace({
     }
   }, [showToast, handleOpenAiModal]);
 
-  const handleSelectSection = useCallback((sectionId: string) => {
-    if (
-      sectionId === "overview" ||
-      sectionId === "signals" ||
-      sectionId === "x-feed" ||
-      sectionId === "models" ||
-      sectionId === "macro"
-    ) {
-      setActiveSection(sectionId);
+  const handleSelectSection = useCallback(
+    (sectionId: string) => {
+      if (
+        sectionId === "overview" ||
+        sectionId === "signals" ||
+        sectionId === "x-feed" ||
+        sectionId === "models" ||
+        sectionId === "macro"
+      ) {
+        if (sectionId !== activeSection) {
+          setSectionHistory((prev) => [...prev.slice(-19), activeSection]);
+        }
+        setActiveSection(sectionId);
+        if (typeof window !== "undefined") {
+          const targetPath = sectionId === "x-feed" ? "/x-feed" : "/";
+          if (window.location.pathname !== targetPath) {
+            window.history.replaceState(null, "", targetPath);
+          }
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }
+      }
+    },
+    [activeSection]
+  );
+
+  const canGoBack = sectionHistory.length > 0 || hasBrowserBack;
+
+  const handleGoBack = useCallback(() => {
+    if (sectionHistory.length > 0) {
+      const prevSection = sectionHistory[sectionHistory.length - 1]!;
+      setSectionHistory((prev) => prev.slice(0, -1));
+      setActiveSection(prevSection);
       if (typeof window !== "undefined") {
-        const targetPath = sectionId === "x-feed" ? "/x-feed" : "/";
+        const targetPath = prevSection === "x-feed" ? "/x-feed" : "/";
         if (window.location.pathname !== targetPath) {
           window.history.replaceState(null, "", targetPath);
         }
         window.scrollTo({ top: 0, behavior: "smooth" });
       }
+      return;
     }
-  }, []);
+    if (hasBrowserBack && typeof window !== "undefined") {
+      window.history.back();
+    }
+  }, [sectionHistory, hasBrowserBack]);
 
   const commandItems: CommandMenuItem[] = useMemo(
     () => [
@@ -575,42 +618,6 @@ export function EventHorizonWorkspace({
     ]
   );
 
-  const headerControls = (
-    <div className="inline-flex items-center gap-1.5">
-      {!pwaState.isStandalone && (
-        <button
-          type="button"
-          onClick={handleQuickInstallPwa}
-          aria-label="ATRC 앱 설치"
-          className="min-h-11 px-2.5 lg:px-3 rounded-2xl text-xs font-semibold inline-flex items-center gap-1.5 border border-base-content/12 bg-base-100/70 hover:bg-base-100 text-base-content transition-colors pst-press"
-        >
-          <IconDownload className="w-3.5 h-3.5 shrink-0" />
-          <span className="hidden lg:inline">앱 설치</span>
-        </button>
-      )}
-
-      <button
-        type="button"
-        onClick={handleOpenAiModal}
-        aria-label="자동 요약 및 실시간 동기화 설정 열기"
-        className="min-h-11 px-3 rounded-2xl text-xs font-semibold inline-flex items-center gap-2 border border-base-content/12 bg-base-100/70 hover:bg-base-100 text-base-content transition-colors pst-press"
-      >
-        <span
-          className={`w-1.5 h-1.5 rounded-full ${
-            isLoadingIntel ? "bg-warning animate-pulse" : "bg-success"
-          }`}
-          aria-hidden="true"
-        />
-        <span className="hidden sm:inline">
-          {aiStatus.activeEngine === "server-api"
-            ? "자동 요약…"
-            : "온디바이스 AI…"}
-        </span>
-        <span className="sm:hidden">AI…</span>
-      </button>
-    </div>
-  );
-
   return (
     <AppShell
       activeSection={activeSection}
@@ -625,16 +632,23 @@ export function EventHorizonWorkspace({
       hideSplitViewToggle
       hideAuthControls
       minimalHeader
-      headerRightExtraSlot={headerControls}
-      mobileRightExtraSlot={headerControls}
+      canGoBack={canGoBack}
+      onGoBack={handleGoBack}
+      onOpenInfoModal={handleOpenAiModal}
+      infoIndicatorActive={isLoadingIntel}
       commandItems={commandItems}
     >
-      <div className="max-w-4xl mx-auto py-4 sm:py-8 space-y-14 sm:space-y-20">
+      <div className="max-w-4xl mx-auto py-2 sm:py-5 space-y-14 sm:space-y-20">
         {activeSection === "overview" && (
           <>
             <HeroMultiClock
               liveStats={liveStats}
               predictionMarkets={predictionMarkets}
+            />
+
+            <IntelligenceVelocityChart
+              compact
+              onExploreModels={() => handleSelectSection("models")}
             />
 
             <SignalRadarColumn

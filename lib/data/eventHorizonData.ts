@@ -37,8 +37,22 @@ export interface UnsatBenchmarkItem {
   name: string;
   domain: string;
   scorePercent: number;
+  previousScorePercent: number;
   note: string;
   thresholdPercent: number;
+}
+
+export interface AiVelocityPoint {
+  id: string;
+  period: string;
+  yearFloat: number;
+  model: string;
+  metrHours: number;
+  metrLabel: string;
+  eciScore: number;
+  compositePercent: number;
+  note: string;
+  isProjected?: boolean;
 }
 
 export interface FutureMilestoneItem {
@@ -62,6 +76,8 @@ export interface MacroIndicatorItem {
   currentDelta: string;
   thresholdNote: string;
   stage: "조기경보 도달" | "관측 진행" | "후행 완충";
+  progressPercent: number;
+  earlyWarningPercent: number;
   interpretation: string;
 }
 
@@ -162,6 +178,7 @@ export const CORE_BENCHMARKS: UnsatBenchmarkItem[] = [
     name: "ARC-AGI-3",
     domain: "인터랙티브 미포화 유동지능 (표준 하네스)",
     scorePercent: 81.2,
+    previousScorePercent: 0.5,
     note: "Claude Fable 5.2 81.2% · GPT-6.2 Astra 70.3% (2026년 3월 <1%에서 급상승)",
     thresholdPercent: 85,
   },
@@ -170,6 +187,7 @@ export const CORE_BENCHMARKS: UnsatBenchmarkItem[] = [
     name: "SWE-Bench Verified",
     domain: "자율 소프트웨어 공학",
     scorePercent: 95.0,
+    previousScorePercent: 65.4,
     note: "Claude Fable 5/5.2 95.0% 달성 · 실전 저장소 이슈 해결 포화 도달",
     thresholdPercent: 92,
   },
@@ -178,6 +196,7 @@ export const CORE_BENCHMARKS: UnsatBenchmarkItem[] = [
     name: "BioBasicsBench",
     domain: "웨트랩 생물학 원시 데이터 해석",
     scorePercent: 67.0,
+    previousScorePercent: 31.2,
     note: "OpenAI·Ligo 100개 실험 과제 · GPT-6 Astra 67.0% (생물안전 감사 병행)",
     thresholdPercent: 85,
   },
@@ -186,6 +205,7 @@ export const CORE_BENCHMARKS: UnsatBenchmarkItem[] = [
     name: "FrontierMath v2 (Tiers 1–3)",
     domain: "연구급 수리 추론 (295문항 · 정정판)",
     scorePercent: 95.1,
+    previousScorePercent: 26.8,
     note: "Claude Fable 5.2 95.1% · Tier 4 포화 진입, Erdős 미해결 형식증명(4.4%) 추적 이행",
     thresholdPercent: 95,
   },
@@ -194,6 +214,7 @@ export const CORE_BENCHMARKS: UnsatBenchmarkItem[] = [
     name: "Humanity's Last Exam",
     domain: "전 학문 최고난도 종합 (도구 포함)",
     scorePercent: 73.2,
+    previousScorePercent: 21.6,
     note: "Claude Fable 5.2 73.2% · 단순 암기 배제 학술 추론 한계 빠르게 축소",
     thresholdPercent: 95,
   },
@@ -202,6 +223,7 @@ export const CORE_BENCHMARKS: UnsatBenchmarkItem[] = [
     name: "ARC-AGI-2",
     domain: "시각 규칙 추론 (기존 세대)",
     scorePercent: 95.8,
+    previousScorePercent: 8.6,
     note: "GPT-6.2 Astra 95.8% · 프론티어 모델군 사실상 완전 포화",
     thresholdPercent: 95,
   },
@@ -217,6 +239,98 @@ export const METR_TRAJECTORY_POINTS = [
   { period: "27.Q2*", model: "AGI 기준선", minutes: 2400, label: "40h" },
 ];
 
+export const AI_VELOCITY_TIMELINE: AiVelocityPoint[] = [
+  {
+    id: "vel-23q4",
+    period: "23.Q4",
+    yearFloat: 2023.9,
+    model: "GPT-4",
+    metrHours: 0.1,
+    metrLabel: "6분",
+    eciScore: 100,
+    compositePercent: 12,
+    note: "단일 턴 코드·문서 보조 단계 (기준점 1.0x)",
+  },
+  {
+    id: "vel-24q4",
+    period: "24.Q4",
+    yearFloat: 2024.85,
+    model: "Claude 3.5 Sonnet",
+    metrHours: 0.47,
+    metrLabel: "28분",
+    eciScore: 122,
+    compositePercent: 24,
+    note: "다중 파일 편집 및 초기 에이전트 도구 호출 정착",
+  },
+  {
+    id: "vel-25q2",
+    period: "25.Q2",
+    yearFloat: 2025.35,
+    model: "o3 / Opus 4",
+    metrHours: 1.58,
+    metrLabel: "1.6h",
+    eciScore: 140,
+    compositePercent: 41,
+    note: "추론 시간 스케일링(Test-Time Compute) 본격 도입",
+  },
+  {
+    id: "vel-25q4",
+    period: "25.Q4",
+    yearFloat: 2025.9,
+    model: "Claude Opus 4.5",
+    metrHours: 4.0,
+    metrLabel: "4.0h",
+    eciScore: 152,
+    compositePercent: 56,
+    note: "반나절 단위 실전 저장소 이슈 자율 해결 도달",
+  },
+  {
+    id: "vel-26q2",
+    period: "26.Q2",
+    yearFloat: 2026.4,
+    model: "Claude Opus 5",
+    metrHours: 8.0,
+    metrLabel: "8.0h",
+    eciScore: 162,
+    compositePercent: 71,
+    note: "1일 근무 분량 코딩·최적화 파이프라인 자율 완수",
+  },
+  {
+    id: "vel-26q3",
+    period: "26.Q3",
+    yearFloat: 2026.7,
+    model: "GPT-6 Astra",
+    metrHours: 16.0,
+    metrLabel: "16.0h",
+    eciScore: 169,
+    compositePercent: 82,
+    note: "ARC-AGI-3 62.7% 및 장기 검증 에이전트 가속",
+  },
+  {
+    id: "vel-26q4",
+    period: "26.Q4",
+    yearFloat: 2026.9,
+    model: "Fable 5.2 / GPT-6.2",
+    metrHours: 27.0,
+    metrLabel: "27.0h",
+    eciScore: 175,
+    compositePercent: 90,
+    note: "METR TH2 검증 가능 27h · ARC-AGI-3 81.2% · SWE 95%",
+  },
+  {
+    id: "vel-27q2",
+    period: "27.Q2*",
+    yearFloat: 2027.3,
+    model: "AGI 기준선 (외삽)",
+    metrHours: 40.0,
+    metrLabel: "40.0h",
+    eciScore: 190,
+    compositePercent: 100,
+    note: "숙련 지식근로자 주 40시간 범용 인지 과업 기준선",
+    isProjected: true,
+  },
+];
+
 export const MACRO_12_INDICATORS: MacroIndicatorItem[] = [
   {
     id: "mac-1",
@@ -225,6 +339,8 @@ export const MACRO_12_INDICATORS: MacroIndicatorItem[] = [
     currentDelta: "$725B (+77% YoY)",
     thresholdNote: "조기경보 $400B 돌파 · 완전 전환 $1.2T",
     stage: "조기경보 도달",
+    progressPercent: 60,
+    earlyWarningPercent: 33,
     interpretation: "단일 산업 사상 최대 규모의 연산 인프라 선행 자본 투입 지속.",
   },
   {
@@ -234,6 +350,8 @@ export const MACRO_12_INDICATORS: MacroIndicatorItem[] = [
     currentDelta: "$68B / 분기",
     thresholdNote: "조기경보 $50B 돌파 · 완전 전환 $200B",
     stage: "조기경보 도달",
+    progressPercent: 34,
+    earlyWarningPercent: 25,
     interpretation: "실제 클러스터 증설 수요를 반영하는 하드웨어 집행 지표.",
   },
   {
@@ -243,6 +361,8 @@ export const MACRO_12_INDICATORS: MacroIndicatorItem[] = [
     currentDelta: "1.0 GW 가동",
     thresholdNote: "조기경보 0.5GW 돌파 · 완전 전환 5.0GW",
     stage: "조기경보 도달",
+    progressPercent: 20,
+    earlyWarningPercent: 10,
     interpretation: "원전 1기급 단일 학습·추론 캠퍼스 상용 가동 진입.",
   },
   {
@@ -252,6 +372,8 @@ export const MACRO_12_INDICATORS: MacroIndicatorItem[] = [
     currentDelta: "+4.0% 가속",
     thresholdNote: "조기경보 +2.5% 돌파 · 완전 전환 +9.0%",
     stage: "조기경보 도달",
+    progressPercent: 44,
+    earlyWarningPercent: 28,
     interpretation: "소프트웨어 및 리서치 직군 중심의 산출량 반등 관측.",
   },
   {
@@ -261,6 +383,8 @@ export const MACRO_12_INDICATORS: MacroIndicatorItem[] = [
     currentDelta: "+5.5%",
     thresholdNote: "조기경보 +4.0% 돌파 · 완전 전환 +15.0%",
     stage: "조기경보 도달",
+    progressPercent: 37,
+    earlyWarningPercent: 27,
     interpretation: "신규 인력 충원 대신 에이전트 API 예산으로 대체하는 비중 확대.",
   },
   {
@@ -270,6 +394,8 @@ export const MACRO_12_INDICATORS: MacroIndicatorItem[] = [
     currentDelta: "월 -22% ~ -25%",
     thresholdNote: "조기경보 월 -15% 돌파",
     stage: "조기경보 도달",
+    progressPercent: 78,
+    earlyWarningPercent: 50,
     interpretation: "경량·라우팅 최적화로 실전 컴퓨터 제어 비용 급감.",
   },
   {
@@ -279,6 +405,8 @@ export const MACRO_12_INDICATORS: MacroIndicatorItem[] = [
     currentDelta: "-13.3% 감소",
     thresholdNote: "조기경보 -8.0% 돌파 · 완전 전환 -20.0%",
     stage: "조기경보 도달",
+    progressPercent: 67,
+    earlyWarningPercent: 40,
     interpretation: "일괄 해고보다 시니어 1인이 에이전트를 지휘하는 신입 채용 축소가 선행.",
   },
   {
@@ -288,6 +416,8 @@ export const MACRO_12_INDICATORS: MacroIndicatorItem[] = [
     currentDelta: "+0.9pp 상승",
     thresholdNote: "조기경보 +0.7pp 돌파 · 완전 전환 +2.0pp",
     stage: "조기경보 도달",
+    progressPercent: 45,
+    earlyWarningPercent: 35,
     interpretation: "주니어 개발·번역·초벌 리서치 직무의 진입 장벽 상승.",
   },
   {
@@ -297,6 +427,8 @@ export const MACRO_12_INDICATORS: MacroIndicatorItem[] = [
     currentDelta: "-0.7pp 감소",
     thresholdNote: "조기경보 -0.8pp 근접",
     stage: "관측 진행",
+    progressPercent: 35,
+    earlyWarningPercent: 40,
     interpretation: "채용 시장 보수화로 현 직장 잔류 및 내부 AI 도구 결합 심화.",
   },
   {
@@ -306,6 +438,8 @@ export const MACRO_12_INDICATORS: MacroIndicatorItem[] = [
     currentDelta: "+3.9pp",
     thresholdNote: "조기경보 +5.0pp 미달",
     stage: "관측 진행",
+    progressPercent: 31,
+    earlyWarningPercent: 40,
     interpretation: "물리·대면 서비스 직군의 완충 작용으로 전체 고용 충격은 제한적.",
   },
   {
@@ -315,6 +449,8 @@ export const MACRO_12_INDICATORS: MacroIndicatorItem[] = [
     currentDelta: "-0.7pp",
     thresholdNote: "조기경보 -1.7pp 미달",
     stage: "후행 완충",
+    progressPercent: 18,
+    earlyWarningPercent: 43,
     interpretation: "거시 소득 분배 지표 반영까지는 수년의 통계 시차 존재.",
   },
   {
@@ -324,6 +460,8 @@ export const MACRO_12_INDICATORS: MacroIndicatorItem[] = [
     currentDelta: "임금 +3.9% · 고용 +0.5pp",
     thresholdNote: "조기경보 임금 -1.7% 미달",
     stage: "후행 완충",
+    progressPercent: 12,
+    earlyWarningPercent: 45,
     interpretation: "전면적 의무 노동 소멸 및 UBI 정책 전환까지는 거시적 시차 잔존.",
   },
 ];

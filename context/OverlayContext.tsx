@@ -219,9 +219,11 @@ export function OverlayProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // Lock body scroll while modal or dialog is open
-    const prevOverflow = document.body.style.overflow;
+    // Lock document scroll while modal or dialog is open (iOS Safari PWA compatible)
+    const prevBodyOverflow = document.body.style.overflow;
+    const prevHtmlOverflow = document.documentElement.style.overflow;
     document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
 
     if (
       !previousFocusedElementRef.current &&
@@ -308,7 +310,8 @@ export function OverlayProvider({ children }: { children: React.ReactNode }) {
     return () => {
       window.clearTimeout(focusTimer);
       window.removeEventListener("keydown", handleKeyDown);
-      document.body.style.overflow = prevOverflow;
+      document.body.style.overflow = prevBodyOverflow;
+      document.documentElement.style.overflow = prevHtmlOverflow;
     };
   }, [
     activeModal,
@@ -374,18 +377,18 @@ export function OverlayProvider({ children }: { children: React.ReactNode }) {
     >
       {children}
 
-      {/* 1. Primary Semantic Modal (<dialog>) with Dirty State Guard */}
+      {/* 1. Primary Semantic Modal (<dialog>) with Dirty State Guard & Mobile PWA Touch Scroll */}
       {activeModal && (
         <dialog
           open
           aria-modal="true"
           aria-labelledby="pst-modal-title"
-          className="modal modal-open z-40 transition-all duration-300 ease-out"
+          className="modal modal-open z-40 transition-all duration-300 ease-out p-3 sm:p-4 pt-[calc(12px+var(--safe-top,0px))] pb-[calc(12px+var(--safe-bottom,0px))] overscroll-contain"
           style={{ backgroundColor: "var(--liquid-glass-dimming)" }}
         >
           <div
             ref={modalBoxRef}
-            className={`modal-box liquid-glass-elevated rounded-2xl transition-all duration-300 ease-out relative overflow-hidden ${
+            className={`modal-box liquid-glass-elevated rounded-3xl transition-all duration-300 ease-out relative flex flex-col p-0 overflow-hidden w-full max-h-[calc(100dvh-2rem-var(--safe-top,0px)-var(--safe-bottom,0px))] ${
               activeModal.size === "sm"
                 ? "max-w-md"
                 : activeModal.size === "lg"
@@ -395,19 +398,19 @@ export function OverlayProvider({ children }: { children: React.ReactNode }) {
           >
             <div
               inert={showDirtyGuardSheet || undefined}
-              className="flex items-start justify-between gap-3 pb-3 border-b"
+              className="shrink-0 flex items-start justify-between gap-3 px-5 sm:px-6 pt-5 pb-3.5 border-b"
               style={{ borderColor: "var(--separator)" }}
             >
-              <div>
+              <div className="min-w-0">
                 <h3
                   id="pst-modal-title"
-                  className="text-lg font-bold tracking-tight text-base-content"
+                  className="text-base sm:text-lg font-bold tracking-tight text-base-content"
                 >
                   {activeModal.title}
                 </h3>
                 {activeModal.description && (
                   <p
-                    className="text-sm font-medium mt-0.5"
+                    className="text-xs sm:text-sm font-medium mt-0.5"
                     style={{ color: "var(--label-secondary)" }}
                   >
                     {activeModal.description}
@@ -418,13 +421,20 @@ export function OverlayProvider({ children }: { children: React.ReactNode }) {
                 type="button"
                 onClick={() => closeModal(false)}
                 aria-label="모달 닫기"
-                className="btn btn-ghost btn-circle btn-sm pst-press text-base-content"
+                className="btn btn-ghost btn-circle btn-sm shrink-0 pst-press text-base-content"
               >
                 <IconXMark className="w-5 h-5" />
               </button>
             </div>
 
-            <div inert={showDirtyGuardSheet || undefined} className="py-4">
+            <div
+              inert={showDirtyGuardSheet || undefined}
+              className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-5 sm:px-6 py-4 pb-[calc(1.25rem+var(--safe-bottom,0px))]"
+              style={{
+                WebkitOverflowScrolling: "touch",
+                touchAction: "pan-y",
+              }}
+            >
               {activeModal.content}
             </div>
 

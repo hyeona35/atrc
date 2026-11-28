@@ -7,7 +7,14 @@ import {
   type EnsembleClockSpec,
 } from "@/lib/data/eventHorizonData";
 import type { PredictionMarketItem } from "@/lib/server/liveIntel";
-import { IconChevronDown, IconExternalLink, IconSliders } from "@/components/ui/icons";
+import {
+  IconCalendar,
+  IconChevronDown,
+  IconExternalLink,
+  IconShare,
+  IconSliders,
+} from "@/components/ui/icons";
+import { useToast } from "@/context/OverlayContext";
 import { triggerHaptic } from "@/lib/haptics";
 
 interface CountdownParts {
@@ -81,6 +88,7 @@ export function HeroMultiClock({
   const [showAllMarkets, setShowAllMarkets] = useState<boolean>(false);
   const [rdSpeedupFactor, setRdSpeedupFactor] = useState<number>(1.0);
   const [infraOffsetMonths, setInfraOffsetMonths] = useState<number>(0);
+  const { showToast } = useToast();
 
   useEffect(() => {
     const updateClock = () => setNowMs(Date.now());
@@ -95,13 +103,16 @@ export function HeroMultiClock({
   const selectedClock =
     ENSEMBLE_CLOCKS.find((c) => c.id === selectedClockId) ?? ENSEMBLE_CLOCKS[1];
 
-  const getAdjustedTargetMs = (spec: EnsembleClockSpec): number => {
+  const computeScenarioTargetMs = (
+    spec: EnsembleClockSpec,
+    targetScenario: ScenarioMode
+  ): number => {
     let baseTargetMs: number;
-    if (scenario === "fast-rsi") {
+    if (targetScenario === "fast-rsi") {
       baseTargetMs = Date.parse(spec.fastTakeoffDateIso);
     } else {
       const baseMs = Date.parse(spec.targetDateIso);
-      if (scenario === "baseline") {
+      if (targetScenario === "baseline") {
         baseTargetMs = baseMs;
       } else if (spec.id === "seed-rsi") {
         baseTargetMs = baseMs + SAFETY_BUFFER_MS * 0.25;
@@ -121,6 +132,9 @@ export function HeroMultiClock({
     return Math.max(nowMs + 86400 * 1000, finalMs);
   };
 
+  const getAdjustedTargetMs = (spec: EnsembleClockSpec): number =>
+    computeScenarioTargetMs(spec, scenario);
+
   const isCustomModified =
     Math.abs(rdSpeedupFactor - 1.0) > 0.01 || infraOffsetMonths !== 0;
 
@@ -133,87 +147,234 @@ export function HeroMultiClock({
   const fullRsiMs = getAdjustedTargetMs(ENSEMBLE_CLOCKS[2]!);
   const gapMonths = Math.max(1, Math.round((fullRsiMs - seedMs) / MS_PER_MONTH));
 
+  const fastTargetMs = computeScenarioTargetMs(selectedClock, "fast-rsi");
+  const baselineTargetMs = computeScenarioTargetMs(selectedClock, "baseline");
+  const safetyTargetMs = computeScenarioTargetMs(selectedClock, "safety-buffer");
+
+  const handleShareForecast = async () => {
+    triggerHaptic("light");
+    const scenarioLabel =
+      scenario === "fast-rsi"
+        ? "선행 RSI 가속"
+        : scenario === "safety-buffer"
+        ? "안전 완충"
+        : "기본 추세";
+    const summaryText = `ATRC 도달 예측 | ${selectedClock.shortCode}: ${formatKoreanYearMonth(
+      activeTargetMs
+    )} (D-${countdown.days}) · 시나리오: ${scenarioLabel} | METR 27.0h · ARC-AGI-3 81.2%`;
+    const shareUrl =
+      typeof window !== "undefined" ? window.location.href : "https://atrc.hyeona3.com";
+
+    try {
+      if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+        await navigator.share({
+          title: `ATRC — ${selectedClock.shortCode} 도달 예측`,
+          text: summaryText,
+          url: shareUrl,
+        });
+        return;
+      }
+      await navigator.clipboard.writeText(`${summaryText}\n${shareUrl}`);
+      showToast({
+        title: "예측 스냅샷 복사 완료",
+        description: "도달 예측 시기와 핵심 지표 요약이 클립보드에 복사되었습니다.",
+        variant: "success",
+      });
+    } catch {
+      // User cancelled native share sheet or clipboard unavailable
+    }
+  };
+
+  const handleDownloadIcs = () => {
+    triggerHaptic("light");
+    const d = new Date(activeTargetMs);
+    const y = d.getUTCFullYear();
+    const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+    const day = String(d.getUTCDate()).padStart(2, "0");
+    const nextDay = new Date(activeTargetMs + 86400 * 1000);
+    const ny = nextDay.getUTCFullYear();
+    const nm = String(nextDay.getUTCMonth() + 1).padStart(2, "0");
+    const nday = String(nextDay.getUTCDate()).padStart(2, "0");
+    const stamp = new Date().toISOString().replace(/[-:]/g, "").slice(0, 15) + "Z";
+
+    const ics = [
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "PRODID:-//ATRC Observatory//Forecast//KO",
+      "BEGIN:VEVENT",
+      `UID:atrc-${selectedClock.id}-${scenario}-${y}${m}${day}@atrc.hyeona3.com`,
+      `DTSTAMP:${stamp}`,
+      `DTSTART;VALUE=DATE:${y}${m}${day}`,
+      `DTEND;VALUE=DATE:${ny}${nm}${nday}`,
+      `SUMMARY:ATRC — ${selectedClock.koreanTitle} 도달 예측`,
+      `DESCRIPTION:${selectedClock.definition} (https://atrc.hyeona3.com)`,
+      "END:VEVENT",
+      "END:VCALENDAR",
+    ].join("\r\n");
+
+    const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `atrc-${selectedClock.id}-${y}${m}.ics`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    showToast({
+      title: "캘린더 일정(.ics) 저장 완료",
+      description: `${selectedClock.shortCode} 예측 시점(${formatKoreanYearMonth(
+        activeTargetMs
+      )}) 일정을 내려받았습니다.`,
+      variant: "success",
+    });
+  };
+
   return (
     <section
       aria-labelledby="horizon-timepiece-heading"
-      className="pt-2 pb-10 border-b border-base-content/10 space-y-8"
+      className="pt-1 pb-10 border-b border-base-content/10 space-y-7"
     >
-      {/* Top context bar: quiet title + 3-way scenario toggle */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="space-y-1">
-          <p
-            className="text-xs font-semibold"
-            style={{ color: "var(--label-secondary)" }}
+      {/* Prominent Focal Arrival Prediction Card */}
+      <div className="rounded-3xl material-regular border border-primary/20 p-5 sm:p-7 space-y-6">
+        {/* Top Row: Clean Milestone Title + 3-Way Scenario Toggle */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span className="px-2.5 py-1 rounded-xl bg-primary/14 text-accent-primary font-mono text-xs font-extrabold shrink-0">
+              {selectedClock.shortCode}
+            </span>
+            <h2
+              id="horizon-timepiece-heading"
+              className="text-base sm:text-lg font-extrabold tracking-tight text-base-content truncate"
+            >
+              {selectedClock.koreanTitle}
+            </h2>
+          </div>
+
+          <div
+            role="group"
+            aria-label="예측 시나리오 전환"
+            className="inline-flex flex-wrap items-center p-1 rounded-2xl bg-base-200/80 border border-base-content/10 self-start sm:self-auto"
           >
-            가중 앙상블 중위 도달 예측
-          </p>
-          <h2
-            id="horizon-timepiece-heading"
-            className="text-base sm:text-lg font-bold tracking-tight text-base-content"
-          >
-            {selectedClock.koreanTitle}
-          </h2>
+            {(
+              [
+                { id: "fast-rsi", label: "선행 RSI 가속" },
+                { id: "baseline", label: "기본 추세" },
+                { id: "safety-buffer", label: "안전 완충" },
+              ] as const
+            ).map((opt) => {
+              const active = scenario === opt.id;
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic("selection");
+                    setScenario(opt.id);
+                  }}
+                  aria-pressed={active}
+                  className={`min-h-10 px-3 rounded-xl text-xs font-semibold transition-colors pst-press cursor-pointer ${
+                    active
+                      ? "bg-base-100 text-base-content shadow-xs"
+                      : "text-base-content/65 hover:text-base-content"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        <div
-          role="group"
-          aria-label="예측 시나리오 전환"
-          className="inline-flex flex-wrap items-center p-1 rounded-2xl bg-base-200/80 border border-base-content/10 self-start sm:self-auto"
-        >
+        {/* Hero Arrival Period Display: Giant Target Year/Month + Bold D-Day + Segmented Countdown */}
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+            <p className="text-5xl sm:text-7xl font-black tracking-tight tabular-nums leading-none bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+              {formatKoreanYearMonth(activeTargetMs)}
+            </p>
+            <span className="inline-flex items-center px-3.5 py-1.5 rounded-2xl bg-primary text-primary-content font-mono text-sm sm:text-base font-extrabold tabular-nums shadow-xs">
+              D-{countdown.days.toLocaleString("ko-KR")}
+            </span>
+            {isCustomModified && (
+              <span className="inline-flex items-center px-2.5 py-1 rounded-xl bg-secondary/15 text-secondary font-mono text-xs font-bold">
+                What-If 적용 중
+              </span>
+            )}
+          </div>
+
+          {/* Live Segmented Countdown Tiles */}
+          <div className="grid grid-cols-4 gap-2 sm:gap-3 max-w-md font-mono tabular-nums">
+            {[
+              { value: countdown.days.toLocaleString("ko-KR"), unit: "일" },
+              { value: countdown.hours, unit: "시간" },
+              { value: countdown.minutes, unit: "분" },
+              { value: countdown.seconds, unit: "초" },
+            ].map((cell) => (
+              <div
+                key={cell.unit}
+                className="px-3 py-2.5 rounded-2xl bg-base-200/65 border border-base-content/10 text-center"
+              >
+                <p className="text-lg sm:text-2xl font-extrabold text-base-content leading-tight">
+                  {cell.value}
+                </p>
+                <p
+                  className="text-[11px] font-sans font-semibold mt-0.5"
+                  style={{ color: "var(--label-secondary)" }}
+                >
+                  {cell.unit}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <p
+            className="text-sm leading-relaxed max-w-2xl"
+            style={{ color: "var(--label-secondary)" }}
+          >
+            {selectedClock.definition}
+          </p>
+        </div>
+
+        {/* 3-Scenario Instant Comparison Strip */}
+        <div className="grid grid-cols-3 gap-2 pt-2 border-t border-base-content/10">
           {(
             [
-              { id: "fast-rsi", label: "선행 RSI 가속" },
-              { id: "baseline", label: "기본 추세" },
-              { id: "safety-buffer", label: "안전 완충 (+14개월)" },
+              { id: "fast-rsi", label: "선행 가속", ms: fastTargetMs },
+              { id: "baseline", label: "기본 예측", ms: baselineTargetMs },
+              { id: "safety-buffer", label: "안전 완충", ms: safetyTargetMs },
             ] as const
-          ).map((opt) => {
-            const active = scenario === opt.id;
+          ).map((item) => {
+            const active = scenario === item.id;
             return (
               <button
-                key={opt.id}
+                key={item.id}
                 type="button"
                 onClick={() => {
                   triggerHaptic("selection");
-                  setScenario(opt.id);
+                  setScenario(item.id);
                 }}
-                aria-pressed={active}
-                className={`min-h-11 px-3 rounded-xl text-xs font-semibold transition-colors pst-press ${
+                className={`p-2.5 sm:p-3 rounded-2xl text-start transition-colors pst-press cursor-pointer border ${
                   active
-                    ? "bg-base-100 text-base-content shadow-xs"
-                    : "text-base-content/65 hover:text-base-content"
+                    ? "bg-primary/10 border-primary/40"
+                    : "bg-base-200/40 border-base-content/8 hover:border-base-content/20"
                 }`}
               >
-                {opt.label}
+                <p
+                  className="text-[11px] font-semibold"
+                  style={{ color: active ? "var(--accent-primary-text)" : "var(--label-secondary)" }}
+                >
+                  {item.label}
+                </p>
+                <p className="text-sm sm:text-base font-extrabold font-mono tabular-nums text-base-content mt-0.5">
+                  {formatShortYearMonth(item.ms)}
+                </p>
               </button>
             );
           })}
         </div>
       </div>
 
-      {/* Main Focal Point: Target Year/Month + Quiet Tabular Countdown */}
-      <div className="space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-baseline gap-2 sm:gap-5">
-          <p className="text-4xl sm:text-6xl font-extrabold tracking-tight text-base-content tabular-nums leading-none">
-            {formatKoreanYearMonth(activeTargetMs)}
-          </p>
-          <p
-            className="text-sm sm:text-base font-mono font-semibold tabular-nums"
-            style={{ color: "var(--label-secondary)" }}
-          >
-            잔여 {countdown.days.toLocaleString("ko-KR")}일 {countdown.hours}시간{" "}
-            {countdown.minutes}분 {countdown.seconds}초
-          </p>
-        </div>
-        <p
-          className="text-sm leading-relaxed max-w-2xl"
-          style={{ color: "var(--label-secondary)" }}
-        >
-          {selectedClock.definition}
-        </p>
-      </div>
-
       {/* Linear 2026 — 2033 Architectural Horizon Timeline */}
-      <div className="space-y-3 pt-2">
+      <div className="space-y-3">
         <div className="flex items-center justify-between text-xs font-mono tabular-nums text-base-content/55">
           <span>2026</span>
           <span>2028</span>
@@ -221,7 +382,7 @@ export function HeroMultiClock({
           <span>2032</span>
         </div>
 
-        <div className="relative h-2 rounded-full bg-base-content/10">
+        <div className="relative h-2.5 rounded-full bg-base-content/10">
           <div
             className="absolute inset-y-0 start-0 rounded-full bg-primary transition-all duration-500"
             style={{ width: `${nowPercent}%` }}
@@ -237,7 +398,7 @@ export function HeroMultiClock({
                 style={{ left: `${pct}%` }}
                 className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 rounded-full transition-all ${
                   isSelected
-                    ? "w-3.5 h-3.5 bg-primary ring-4 ring-primary/20"
+                    ? "w-4 h-4 bg-primary ring-4 ring-primary/25"
                     : "w-2.5 h-2.5 bg-base-content/45"
                 }`}
               />
@@ -245,7 +406,7 @@ export function HeroMultiClock({
           })}
         </div>
 
-        {/* Milestone Selector Pills */}
+        {/* Milestone Selector Pills + Tools */}
         <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
           <div className="flex flex-wrap items-center gap-2">
             {ENSEMBLE_CLOCKS.map((clock) => {
@@ -260,7 +421,7 @@ export function HeroMultiClock({
                     setSelectedClockId(clock.id);
                   }}
                   aria-pressed={isSelected}
-                  className={`min-h-11 px-3.5 rounded-2xl text-xs font-semibold transition-colors pst-press inline-flex items-center gap-2 border ${
+                  className={`min-h-11 px-3.5 rounded-2xl text-xs font-semibold transition-colors pst-press cursor-pointer inline-flex items-center gap-2 border ${
                     isSelected
                       ? "bg-base-100 border-primary/45 text-base-content shadow-xs"
                       : "bg-transparent border-base-content/12 text-base-content/70 hover:text-base-content hover:border-base-content/25"
@@ -289,7 +450,7 @@ export function HeroMultiClock({
                 if (showMethodology) setShowMethodology(false);
               }}
               aria-expanded={showSimulator}
-              className={`min-h-11 px-3 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 pst-press transition-colors ${
+              className={`min-h-11 px-3 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 pst-press cursor-pointer transition-colors ${
                 showSimulator || isCustomModified
                   ? "text-primary bg-primary/10"
                   : "text-base-content/70 hover:text-base-content"
@@ -297,7 +458,7 @@ export function HeroMultiClock({
             >
               <IconSliders className="w-3.5 h-3.5" />
               <span>
-                What-If 가정 조절{isCustomModified ? " (커스텀)" : ""}
+                What-If 조절{isCustomModified ? " (적용)" : ""}
               </span>
             </button>
 
@@ -309,14 +470,36 @@ export function HeroMultiClock({
                 if (showSimulator) setShowSimulator(false);
               }}
               aria-expanded={showMethodology}
-              className="min-h-11 px-3 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 text-base-content/70 hover:text-base-content pst-press"
+              className="min-h-11 px-3 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 text-base-content/70 hover:text-base-content pst-press cursor-pointer"
             >
-              <span>산출 기준 · RSI 분석 {showMethodology ? "접기" : "보기"}</span>
+              <span>지표 · RSI 해설</span>
               <IconChevronDown
                 className={`w-3.5 h-3.5 transition-transform duration-200 ${
                   showMethodology ? "rotate-180" : ""
                 }`}
               />
+            </button>
+
+            <button
+              type="button"
+              onClick={handleShareForecast}
+              aria-label="현재 도달 예측 스냅샷 공유 또는 복사"
+              title="예측 공유"
+              className="min-w-11 min-h-11 px-2.5 rounded-xl text-xs font-semibold inline-flex items-center justify-center gap-1 text-base-content/70 hover:text-base-content hover:bg-base-content/5 pst-press cursor-pointer"
+            >
+              <IconShare className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">공유</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleDownloadIcs}
+              aria-label="도달 예측 시점을 캘린더 일정(.ics)으로 저장"
+              title="캘린더(.ics) 추가"
+              className="min-w-11 min-h-11 px-2.5 rounded-xl text-xs font-semibold inline-flex items-center justify-center gap-1 text-base-content/70 hover:text-base-content hover:bg-base-content/5 pst-press cursor-pointer"
+            >
+              <IconCalendar className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">일정</span>
             </button>
           </div>
         </div>
@@ -344,7 +527,7 @@ export function HeroMultiClock({
                     setRdSpeedupFactor(1.0);
                     setInfraOffsetMonths(0);
                   }}
-                  className="min-h-11 px-3 rounded-xl text-xs font-semibold text-primary hover:bg-primary/10 pst-press"
+                  className="min-h-11 px-3 rounded-xl text-xs font-semibold text-primary hover:bg-primary/10 pst-press cursor-pointer"
                 >
                   기본값 초기화
                 </button>
@@ -493,64 +676,76 @@ export function HeroMultiClock({
         )}
       </div>
 
-      {/* Three Quiet Inline Telemetry Figures */}
-      <div className="pt-6 border-t border-base-content/10 grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8">
-        <div className="space-y-1">
-          <p
-            className="text-xs font-medium"
-            style={{ color: "var(--label-secondary)" }}
-          >
-            자율 과업 지속 지평 (METR 50%)
-          </p>
-          <p className="text-2xl font-extrabold tracking-tight font-mono tabular-nums text-base-content">
-            16.0시간
-          </p>
-          <p
-            className="text-xs"
-            style={{ color: "var(--label-secondary)" }}
-          >
-            약 7개월 주기로 2배 확장 중
+      {/* Three Inline Telemetry Figures with Mini Visual Progress Gauges */}
+      <div className="pt-5 border-t border-base-content/10 grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8">
+        <div className="space-y-2">
+          <div className="space-y-1">
+            <p
+              className="text-xs font-medium"
+              style={{ color: "var(--label-secondary)" }}
+            >
+              자율 과업 지속 지평 (METR TH2)
+            </p>
+            <p className="text-2xl font-extrabold tracking-tight font-mono tabular-nums text-base-content">
+              27.0시간{" "}
+              <span className="text-xs font-semibold text-base-content/50">
+                / 40h
+              </span>
+            </p>
+          </div>
+          <div className="h-1.5 rounded-full bg-base-content/10 overflow-hidden" aria-hidden="true">
+            <div className="h-full rounded-full bg-primary" style={{ width: "67.5%" }} />
+          </div>
+          <p className="text-xs" style={{ color: "var(--label-secondary)" }}>
+            약 3.6개월 주기로 2배 확장 중
           </p>
         </div>
 
-        <div className="space-y-1 sm:border-s sm:border-base-content/10 sm:ps-8">
-          <p
-            className="text-xs font-medium"
-            style={{ color: "var(--label-secondary)" }}
-          >
-            역량 대비 정렬 안전 격차
-          </p>
-          <p className="text-2xl font-extrabold tracking-tight font-mono tabular-nums text-base-content">
-            1.76배
-          </p>
-          <p
-            className="text-xs"
-            style={{ color: "var(--label-secondary)" }}
-          >
+        <div className="space-y-2 sm:border-s sm:border-base-content/10 sm:ps-8">
+          <div className="space-y-1">
+            <p
+              className="text-xs font-medium"
+              style={{ color: "var(--label-secondary)" }}
+            >
+              ARC-AGI-3 추상 추론
+            </p>
+            <p className="text-2xl font-extrabold tracking-tight font-mono tabular-nums text-base-content">
+              81.2%{" "}
+              <span className="text-xs font-semibold text-base-content/50">
+                / 85%
+              </span>
+            </p>
+          </div>
+          <div className="h-1.5 rounded-full bg-base-content/10 overflow-hidden" aria-hidden="true">
+            <div className="h-full rounded-full bg-secondary" style={{ width: "81.2%" }} />
+          </div>
+          <p className="text-xs" style={{ color: "var(--label-secondary)" }}>
             {liveStats
               ? `최신 arXiv 에이전트·추론 비중 ${liveStats.reasoningAndAgentPaperRatioPercent}%`
-              : "역량 가속 대비 안전성 검증 후행"}
+              : "표준 하네스 기준 8개월 만에 <1%→81.2%"}
           </p>
         </div>
 
-        <div className="space-y-1 sm:border-s sm:border-base-content/10 sm:ps-8">
-          <p
-            className="text-xs font-medium"
-            style={{ color: "var(--label-secondary)" }}
-          >
-            거시 고용 전환 지수
-          </p>
-          <p className="text-2xl font-extrabold tracking-tight font-mono tabular-nums text-base-content">
-            26.1{" "}
-            <span className="text-sm font-semibold text-base-content/50">
-              / 100
-            </span>
-          </p>
-          <p
-            className="text-xs"
-            style={{ color: "var(--label-secondary)" }}
-          >
-            12개 거시 지표 중 8개 조기경보 진입
+        <div className="space-y-2 sm:border-s sm:border-base-content/10 sm:ps-8">
+          <div className="space-y-1">
+            <p
+              className="text-xs font-medium"
+              style={{ color: "var(--label-secondary)" }}
+            >
+              거시 고용 전환 조기경보
+            </p>
+            <p className="text-2xl font-extrabold tracking-tight font-mono tabular-nums text-base-content">
+              8{" "}
+              <span className="text-sm font-semibold text-base-content/50">
+                / 12 지표
+              </span>
+            </p>
+          </div>
+          <div className="h-1.5 rounded-full bg-base-content/10 overflow-hidden" aria-hidden="true">
+            <div className="h-full rounded-full bg-primary" style={{ width: "66.7%" }} />
+          </div>
+          <p className="text-xs" style={{ color: "var(--label-secondary)" }}>
+            선행 8개 조기경보 도달 · 후행 4개 완충
           </p>
         </div>
       </div>

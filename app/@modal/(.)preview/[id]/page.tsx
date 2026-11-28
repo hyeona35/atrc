@@ -36,7 +36,7 @@ function InterceptedPreviewModalContent({
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-preview-title"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 pt-[calc(12px+var(--safe-top,0px))] pb-[calc(12px+var(--safe-bottom,0px))] overscroll-contain"
     >
       <div
         className="fixed inset-0 transition-opacity duration-300"
@@ -45,7 +45,10 @@ function InterceptedPreviewModalContent({
         aria-hidden="true"
       />
 
-      <div className="relative w-full max-w-xl liquid-glass-elevated rounded-3xl p-6 sm:p-7 shadow-2xl border border-base-content/15 z-10 transition-all duration-300 max-h-[88dvh] overflow-y-auto space-y-5">
+      <div
+        className="relative w-full max-w-xl liquid-glass-elevated rounded-3xl p-5 sm:p-7 shadow-2xl border border-base-content/15 z-10 transition-all duration-300 max-h-[calc(100dvh-2rem-var(--safe-top,0px)-var(--safe-bottom,0px))] overflow-y-auto overscroll-contain space-y-5"
+        style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}
+      >
         {caseFile ? (
           <>
             <div className="flex items-start justify-between gap-4 pb-4 border-b border-base-content/10">
