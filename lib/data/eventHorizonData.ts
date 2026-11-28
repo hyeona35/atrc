@@ -19,6 +19,8 @@ export interface InfluencerAccount {
   weight: number;
   hitRate: number;
   filterRuleSummary: string;
+  blueskyHandle?: string;
+  rssFeedUrl?: string;
 }
 
 export interface EnsembleClockSpec {
@@ -589,6 +591,7 @@ export const INFLUENCER_ACCOUNTS: InfluencerAccount[] = [
     weight: 0.98,
     hitRate: 96,
     filterRuleSummary: "장문 아키텍처·에이전트 실전 분석 및 교육 프로젝트 우선 수집",
+    rssFeedUrl: "https://karpathy.bearblog.dev/feed/",
   },
   {
     id: "sama",
@@ -601,6 +604,7 @@ export const INFLUENCER_ACCOUNTS: InfluencerAccount[] = [
     weight: 0.95,
     hitRate: 83,
     filterRuleSummary: "공식 출시·인프라 투자 발언만 반영하고 단문 티저 게시물 감쇠",
+    rssFeedUrl: "https://blog.samaltman.com/posts.atom",
   },
   {
     id: "jeffdean",
@@ -663,6 +667,7 @@ export const INFLUENCER_ACCOUNTS: InfluencerAccount[] = [
     weight: 0.94,
     hitRate: 94,
     filterRuleSummary: "해석가능성 논문 및 안전 감사 방법론 갱신 시 정렬 적자 지표 연동",
+    rssFeedUrl: "https://transformer-circuits.pub/feed.xml",
   },
   {
     id: "oriolvinyals",
@@ -713,6 +718,8 @@ export const INFLUENCER_ACCOUNTS: InfluencerAccount[] = [
     weight: 0.96,
     hitRate: 97,
     filterRuleSummary: "자율 작업 지평 보고서 갱신 시 히어로 시계·METR 곡선 직결 반영",
+    blueskyHandle: "metr.org",
+    rssFeedUrl: "https://metr.org/feed.xml",
   },
   {
     id: "epochai",
@@ -725,6 +732,8 @@ export const INFLUENCER_ACCOUNTS: InfluencerAccount[] = [
     weight: 0.96,
     hitRate: 96,
     filterRuleSummary: "ECI 지수·연산량 데이터베이스·FrontierMath 수치 발표 전건 반영",
+    blueskyHandle: "epochai.bsky.social",
+    rssFeedUrl: "https://epochai.substack.com/feed",
   },
   {
     id: "arcprize",
@@ -737,6 +746,7 @@ export const INFLUENCER_ACCOUNTS: InfluencerAccount[] = [
     weight: 0.95,
     hitRate: 96,
     filterRuleSummary: "검증 완료된 ARC-AGI-3 점수 및 효율 프론티어 갱신만 채택",
+    rssFeedUrl: "https://arcprize.org/feed.xml",
   },
   {
     id: "semianalysis",
@@ -749,6 +759,7 @@ export const INFLUENCER_ACCOUNTS: InfluencerAccount[] = [
     weight: 0.92,
     hitRate: 91,
     filterRuleSummary: "인프라·칩·전력 병목 분석 채택 (투자·주가 전망성 논평은 제외)",
+    rssFeedUrl: "https://newsletter.semianalysis.com/feed",
   },
   {
     id: "artificialanalysis",
@@ -823,6 +834,8 @@ export const INFLUENCER_ACCOUNTS: InfluencerAccount[] = [
     weight: 0.85,
     hitRate: 89,
     filterRuleSummary: "기술적 사후학습 분석 및 오픈 데이터 공개 중심 수집",
+    blueskyHandle: "natolambert.bsky.social",
+    rssFeedUrl: "https://www.interconnects.ai/feed",
   },
   {
     id: "simonwillison",
@@ -835,6 +848,8 @@ export const INFLUENCER_ACCOUNTS: InfluencerAccount[] = [
     weight: 0.86,
     hitRate: 91,
     filterRuleSummary: "재현 가능한 프롬프트·도구 테스트 및 보안 취약점 노트 반영",
+    blueskyHandle: "simonwillison.net",
+    rssFeedUrl: "https://simonwillison.net/atom/entries/",
   },
   {
     id: "sholtodouglas",
@@ -861,6 +876,7 @@ export const INFLUENCER_ACCOUNTS: InfluencerAccount[] = [
     weight: 0.80,
     hitRate: 87,
     filterRuleSummary: "정책 임계점 및 연구 동향 종합 분석 참고용으로 반영",
+    rssFeedUrl: "https://importai.substack.com/feed",
   },
   {
     id: "fchollet",
@@ -885,6 +901,7 @@ export const INFLUENCER_ACCOUNTS: InfluencerAccount[] = [
     weight: 0.65,
     hitRate: 70,
     filterRuleSummary: "월드모델(JEPA) 연구 성과 우선 반영, 단문 논쟁적 예측은 분리",
+    blueskyHandle: "yann-lecun.bsky.social",
   },
   {
     id: "ethanmollick",
@@ -897,6 +914,8 @@ export const INFLUENCER_ACCOUNTS: InfluencerAccount[] = [
     weight: 0.72,
     hitRate: 82,
     filterRuleSummary: "대조군 실험 기반의 조직·노동 생산성 연구 위주로 반영",
+    blueskyHandle: "emollick.bsky.social",
+    rssFeedUrl: "https://www.oneusefulthing.org/feed",
   },
   {
     id: "akhaliq",
@@ -921,6 +940,8 @@ export const INFLUENCER_ACCOUNTS: InfluencerAccount[] = [
     weight: 0.48,
     hitRate: 64,
     filterRuleSummary: "구체적 반례·실패 케이스 제시 시 활용하며 반복 논평은 자동 감쇠",
+    blueskyHandle: "garymarcus.bsky.social",
+    rssFeedUrl: "https://garymarcus.substack.com/feed",
   },
 ];
 

@@ -69,8 +69,8 @@ export const HORIZON_PAGE_CONFIG: {
     },
     "x-feed": {
       title: "인물 X 피드",
-      badge: "개인 API 연동",
-      description: "쿠키 기반 개인 X API 키 저장 및 직접 검증 S~D 등급 30인 타임라인 통합 조회",
+      badge: "자동 수집",
+      description: "API 키 없이 X 공개·Bluesky·1차 블로그에서 직접 검증 S~D 등급 30인 타임라인 자동 수집",
     },
     models: {
       title: "프론티어 지능",
