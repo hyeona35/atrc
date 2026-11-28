@@ -624,29 +624,34 @@ export function SignalRadarColumn({
                         요약 엔진: {item.summarizedBy}
                       </span>
 
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Button
-                          variant="ghost"
-                          size="xs"
-                          leadingIcon={
-                            <IconBookmark
-                              className="w-3.5 h-3.5"
-                              filled={bookmarkedIds.includes(item.id)}
-                            />
-                          }
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <button
+                          type="button"
                           onClick={() => toggleBookmark(item.id)}
+                          aria-pressed={bookmarkedIds.includes(item.id)}
+                          aria-label={bookmarkedIds.includes(item.id) ? "저장 해제" : "저장"}
+                          title={bookmarkedIds.includes(item.id) ? "저장됨" : "저장"}
+                          className={`min-w-11 min-h-11 rounded-2xl inline-flex items-center justify-center transition-colors pst-press cursor-pointer ${
+                            bookmarkedIds.includes(item.id)
+                              ? "text-primary bg-primary/10"
+                              : "text-base-content/70 hover:text-base-content hover:bg-base-content/8"
+                          }`}
                         >
-                          {bookmarkedIds.includes(item.id) ? "저장됨" : "저장"}
-                        </Button>
+                          <IconBookmark
+                            className="w-4 h-4"
+                            filled={bookmarkedIds.includes(item.id)}
+                          />
+                        </button>
 
-                        <Button
-                          variant="ghost"
-                          size="xs"
-                          leadingIcon={<IconClipboard className="w-3.5 h-3.5" />}
+                        <button
+                          type="button"
                           onClick={() => handleCopyMarkdown(item)}
+                          aria-label="요약 복사"
+                          title="요약 복사"
+                          className="min-w-11 min-h-11 rounded-2xl inline-flex items-center justify-center text-base-content/70 hover:text-base-content hover:bg-base-content/8 transition-colors pst-press cursor-pointer"
                         >
-                          요약 복사
-                        </Button>
+                          <IconClipboard className="w-4 h-4" />
+                        </button>
 
                         <Button
                           variant="soft"
