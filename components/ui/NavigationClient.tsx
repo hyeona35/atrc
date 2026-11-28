@@ -3,8 +3,10 @@
 import React, { useEffect, useState } from "react";
 import {
   IconChevronDown,
+  IconChevronRight,
   IconLogoATRC,
 } from "./icons";
+import { triggerHaptic } from "@/lib/haptics";
 
 export interface TabBarItem {
   /** Unique item identifier. */
@@ -194,6 +196,7 @@ export function Sidebar({
   activeId,
   onSelect,
   isCollapsed,
+  onToggleCollapse,
   inlinePreview = false,
   brandLabel = "Workspace",
   className = "",
@@ -219,50 +222,82 @@ export function Sidebar({
           : "hidden md:flex fixed z-30 rounded-3xl"
       } ${className}`}
     >
-      {/* Top Leading Workspace Header (App Bar retains primary collapse button per Requirement 1) */}
+      {/* Top Leading Workspace Header */}
       <div
-        className={`flex items-center px-3 pt-3.5 pb-2.5 border-b ${
-          isCollapsed ? "justify-center" : "justify-start"
+        className={`flex items-center px-3 pt-3.5 pb-2.5 border-b gap-1 ${
+          isCollapsed ? "flex-col justify-center gap-2" : "justify-between"
         }`}
         style={{ borderColor: "var(--separator)" }}
       >
         {!isCollapsed ? (
-          <button
-            type="button"
-            onClick={() => {
-              onSelect("overview");
-              if (typeof window !== "undefined") {
-                window.scrollTo({ top: 0, behavior: "smooth" });
-                document.documentElement.scrollTo?.({ top: 0, behavior: "smooth" });
-                document.body.scrollTo?.({ top: 0, behavior: "smooth" });
-              }
-            }}
-            title={`${brandLabel} 홈으로 이동`}
-            aria-label={`${brandLabel} 홈으로 이동`}
-            className="flex items-center gap-2.5 min-w-0 ps-1 cursor-pointer pst-press rounded-xl hover:opacity-90 transition-opacity focus-visible:outline-2 focus-visible:outline-primary"
-          >
-            <IconLogoATRC className="w-7 h-7 shrink-0 rounded-xl shadow-xs" />
-            <span className="text-sm font-extrabold tracking-tight text-base-content truncate">
-              {brandLabel}
-            </span>
-          </button>
+          <>
+            <button
+              type="button"
+              onClick={() => {
+                onSelect("overview");
+                if (typeof window !== "undefined") {
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                  document.documentElement.scrollTo?.({ top: 0, behavior: "smooth" });
+                  document.body.scrollTo?.({ top: 0, behavior: "smooth" });
+                }
+              }}
+              title={`${brandLabel} 홈으로 이동`}
+              aria-label={`${brandLabel} 홈으로 이동`}
+              className="flex items-center gap-2.5 min-w-0 ps-1 cursor-pointer pst-press rounded-xl hover:opacity-90 transition-opacity focus-visible:outline-2 focus-visible:outline-primary"
+            >
+              <IconLogoATRC className="w-7 h-7 shrink-0 rounded-xl shadow-xs" />
+              <span className="text-sm font-extrabold tracking-tight text-base-content truncate">
+                {brandLabel}
+              </span>
+            </button>
+            {onToggleCollapse && (
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic("light");
+                  onToggleCollapse();
+                }}
+                aria-label="사이드바 접기"
+                title="사이드바 접기"
+                className="w-9 h-9 rounded-xl inline-flex items-center justify-center text-base-content/65 hover:text-base-content hover:bg-base-content/8 transition-colors pst-press shrink-0"
+              >
+                <IconChevronRight className="w-4 h-4 rotate-180" />
+              </button>
+            )}
+          </>
         ) : (
-          <button
-            type="button"
-            onClick={() => {
-              onSelect("overview");
-              if (typeof window !== "undefined") {
-                window.scrollTo({ top: 0, behavior: "smooth" });
-                document.documentElement.scrollTo?.({ top: 0, behavior: "smooth" });
-                document.body.scrollTo?.({ top: 0, behavior: "smooth" });
-              }
-            }}
-            title={`${brandLabel} 홈으로 이동`}
-            aria-label={`${brandLabel} 홈으로 이동`}
-            className="w-10 h-10 rounded-2xl flex items-center justify-center pst-press hover:bg-base-content/10 transition-colors focus-visible:outline-2 focus-visible:outline-primary mx-auto"
-          >
-            <IconLogoATRC className="w-7 h-7 shrink-0 rounded-xl shadow-xs" />
-          </button>
+          <>
+            <button
+              type="button"
+              onClick={() => {
+                onSelect("overview");
+                if (typeof window !== "undefined") {
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                  document.documentElement.scrollTo?.({ top: 0, behavior: "smooth" });
+                  document.body.scrollTo?.({ top: 0, behavior: "smooth" });
+                }
+              }}
+              title={`${brandLabel} 홈으로 이동`}
+              aria-label={`${brandLabel} 홈으로 이동`}
+              className="w-10 h-10 rounded-2xl flex items-center justify-center pst-press hover:bg-base-content/10 transition-colors focus-visible:outline-2 focus-visible:outline-primary mx-auto"
+            >
+              <IconLogoATRC className="w-7 h-7 shrink-0 rounded-xl shadow-xs" />
+            </button>
+            {onToggleCollapse && (
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic("light");
+                  onToggleCollapse();
+                }}
+                aria-label="사이드바 펼치기"
+                title="사이드바 펼치기"
+                className="w-9 h-9 rounded-xl inline-flex items-center justify-center text-base-content/65 hover:text-base-content hover:bg-base-content/8 transition-colors pst-press mx-auto"
+              >
+                <IconChevronRight className="w-4 h-4" />
+              </button>
+            )}
+          </>
         )}
       </div>
 

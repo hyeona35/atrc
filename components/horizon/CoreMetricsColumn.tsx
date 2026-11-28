@@ -7,12 +7,16 @@ import {
   CORE_BENCHMARKS,
   FUTURE_MILESTONES,
   MACRO_12_INDICATORS,
-  METR_TRAJECTORY_POINTS,
   type MacroIndicatorItem,
 } from "@/lib/data/eventHorizonData";
 import { TextField } from "@/components/ui";
 import { IconChevronDown, IconChevronRight, IconSliders } from "@/components/ui/icons";
 import { triggerHaptic } from "@/lib/haptics";
+import { IntelligenceVelocityChart } from "./IntelligenceVelocityChart";
+import {
+  BenchmarkObservatoryChart,
+  MacroIndicatorsChart,
+} from "./ObservatoryCharts";
 
 function parseUsdPrice(label: string): number | null {
   if (label === "무료") return 0;
@@ -500,119 +504,14 @@ export function FrontierModelsSection({
         )}
       </div>
 
-      {/* 2 & 3. Full Models View: METR Autonomous Curve + Unsaturated Reasoning Benchmarks */}
+      {/* 2 & 3. Full Models View: Interactive 4-Axis AI Velocity Chart + Benchmark Observatory Graph */}
       {!compactPreview && (
         <>
-          {/* METR Log-Scale Trajectory */}
-          <div className="space-y-4">
-            <div className="space-y-1">
-              <h3 className="text-lg sm:text-xl font-bold tracking-tight text-base-content">
-                자율 과업 지속 지평 추세 (METR 50% 성공 기준)
-              </h3>
-              <p
-                className="text-sm"
-                style={{ color: "var(--label-secondary)" }}
-              >
-                인간의 개입 없이 검증 가능한 소프트웨어·최적화 과업을 완수하는 시간 지평이 약 3.6개월마다 2배씩 확장되고 있습니다.
-              </p>
-            </div>
+          {/* Interactive AI Intelligence Velocity Chart (일반 / 로그 / 지수 / 백분율) */}
+          <IntelligenceVelocityChart />
 
-            <div className="p-6 sm:p-8 rounded-3xl material-regular space-y-6">
-              <div className="w-full overflow-x-auto">
-                <svg
-                  viewBox="0 0 680 210"
-                  role="img"
-                  aria-label="2023년 6분에서 현재 27시간, AGI 기준선 40시간으로 이어지는 로그 스케일 추세선"
-                  className="w-full min-w-[480px] h-auto"
-                >
-                  {/* Subtle horizontal log reference lines */}
-                  {[40, 95, 150].map((y) => (
-                    <line
-                      key={y}
-                      x1="40"
-                      y1={y}
-                      x2="640"
-                      y2={y}
-                      stroke="currentColor"
-                      strokeOpacity="0.08"
-                      strokeDasharray="3 4"
-                    />
-                  ))}
-
-                  {/* Polyline connecting log-scaled points */}
-                  <polyline
-                    fill="none"
-                    stroke="var(--color-primary)"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    points={METR_TRAJECTORY_POINTS.map((pt, idx) => {
-                      const x = 56 + idx * 94;
-                      const logRatio =
-                        (Math.log10(pt.minutes) - Math.log10(5)) /
-                        (Math.log10(2600) - Math.log10(5));
-                      const y = Math.round(168 - logRatio * 132);
-                      return `${x},${y}`;
-                    }).join(" ")}
-                  />
-
-                  {METR_TRAJECTORY_POINTS.map((pt, idx) => {
-                    const x = 56 + idx * 94;
-                    const logRatio =
-                      (Math.log10(pt.minutes) - Math.log10(5)) /
-                      (Math.log10(2600) - Math.log10(5));
-                    const y = Math.round(168 - logRatio * 132);
-                    const isProjected = pt.period.includes("*");
-
-                    return (
-                      <g key={pt.period}>
-                        <circle
-                          cx={x}
-                          cy={y}
-                          r={isProjected ? 4.5 : 5}
-                          fill={
-                            isProjected ? "var(--color-base-100)" : "var(--color-primary)"
-                          }
-                          stroke="var(--color-primary)"
-                          strokeWidth="2"
-                        />
-                        <text
-                          x={x}
-                          y={y - 12}
-                          textAnchor="middle"
-                          fontSize="12"
-                          fontWeight="700"
-                          fill="currentColor"
-                        >
-                          {pt.label}
-                        </text>
-                        <text
-                          x={x}
-                          y="192"
-                          textAnchor="middle"
-                          fontSize="11"
-                          fill="currentColor"
-                          opacity="0.6"
-                        >
-                          {pt.period}
-                        </text>
-                      </g>
-                    );
-                  })}
-                </svg>
-              </div>
-
-              <p
-                className="text-xs leading-relaxed"
-                style={{ color: "var(--label-secondary)" }}
-              >
-                * 27.Q2(40시간)는 현행 지수 추세 외삽 기준선이며 숙련된 지식 근로자의 주간 자율 업무 단위에 해당합니다.
-              </p>
-            </div>
-          </div>
-
-          {/* Unsaturated Frontier Benchmarks */}
-          <div className="space-y-4">
+          {/* Unsaturated Frontier Benchmarks + Interactive Bar/Radar Graph */}
+          <div className="space-y-5">
             <div className="space-y-1">
               <h3 className="text-lg sm:text-xl font-bold tracking-tight text-base-content">
                 미포화 핵심 추론 벤치마크
@@ -624,6 +523,8 @@ export function FrontierModelsSection({
                 단순 암기로 해결할 수 없는 유동 추론, 실전 소프트웨어 공학, 연구급 수리·생물학 지표만 선별합니다.
               </p>
             </div>
+
+            <BenchmarkObservatoryChart />
 
             <div className="rounded-3xl material-regular divide-y divide-base-content/10">
               {CORE_BENCHMARKS.map((bench) => (
@@ -716,6 +617,14 @@ export function MacroFutureSection() {
             </p>
           </div>
         </div>
+
+        <MacroIndicatorsChart
+          selectedIndicatorId={expandedMacroId}
+          onSelectIndicator={(id) => {
+            setStageFilter("all");
+            setExpandedMacroId((prev) => (prev === id ? null : id));
+          }}
+        />
 
         <div
           role="group"

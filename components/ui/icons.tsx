@@ -1209,6 +1209,53 @@ export function IconClipboard({
   );
 }
 
+export function IconShare({
+  className = "w-4 h-4",
+  ...props
+}: IconProps) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.9}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      {...props}
+    >
+      <path d="M12 3v12" />
+      <path d="M8 7l4-4 4 4" />
+      <path d="M5 13v5a3 3 0 003 3h8a3 3 0 003-3v-5" />
+    </svg>
+  );
+}
+
+export function IconCalendar({
+  className = "w-4 h-4",
+  ...props
+}: IconProps) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.9}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      {...props}
+    >
+      <rect x="3.5" y="4.5" width="17" height="16" rx="3" />
+      <line x1="3.5" y1="9.5" x2="20.5" y2="9.5" />
+      <line x1="8" y1="2.5" x2="8" y2="6" />
+      <line x1="16" y1="2.5" x2="16" y2="6" />
+    </svg>
+  );
+}
+
 /**
  * Minimalist pure-symbol brand logo mark for ATRC (Open Horizon Arc + Singularity Core — no text).
  * Uses static solid colors so hidden responsive mounts never break SVG gradient/mask IDs.

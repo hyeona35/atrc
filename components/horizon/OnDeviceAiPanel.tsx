@@ -124,18 +124,37 @@ export function OnDeviceAiModalBody({
           별도의 코드 배포 없이 5분 주기로 글로벌 공식 채널, 학술 아카이브, 모델 레지스트리를 자동 동기화합니다.
         </p>
 
-        <div className="p-4 rounded-2xl material-regular space-y-2">
-          <p className="text-xs font-semibold text-base-content">
-            연결된 실시간 소스 ({activeSources.length}개)
-          </p>
-          <p
-            className="text-xs leading-relaxed"
-            style={{ color: "var(--label-secondary)" }}
-          >
-            {activeSources.length > 0
-              ? activeSources.join(", ")
-              : "OpenAI 공식, Google DeepMind, Hugging Face Papers, arXiv AI, Hacker News, OpenRouter Registry"}
-          </p>
+        <div className="p-4 rounded-2xl material-regular space-y-2.5">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-xs font-semibold text-base-content">
+              연결된 실시간 소스 ({activeSources.length}개)
+            </p>
+            <span className="inline-flex items-center gap-1.5 text-[11px] font-mono text-success font-semibold">
+              <span className="w-1.5 h-1.5 rounded-full bg-success" aria-hidden="true" />
+              LIVE
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {(activeSources.length > 0
+              ? activeSources
+              : [
+                  "OpenAI",
+                  "Anthropic",
+                  "Google DeepMind",
+                  "METR Evals",
+                  "Hugging Face Papers",
+                  "arXiv",
+                  "OpenRouter Registry",
+                ]
+            ).map((src) => (
+              <span
+                key={src}
+                className="px-2.5 py-1 rounded-xl text-[11px] font-semibold bg-base-200/75 border border-base-content/10 text-base-content/85"
+              >
+                {src}
+              </span>
+            ))}
+          </div>
         </div>
 
         <Button

@@ -15,8 +15,10 @@ import {
 import {
   IconBellShield,
   IconCheckCircle,
+  IconChevronLeft,
   IconCompass,
   IconGrid,
+  IconInfoCircle,
   IconLayers,
   IconLogoATRC,
   IconMoon,
@@ -92,6 +94,10 @@ export interface AppShellProps {
   hideSplitViewToggle?: boolean;
   hideAuthControls?: boolean;
   minimalHeader?: boolean;
+  canGoBack?: boolean;
+  onGoBack?: () => void;
+  onOpenInfoModal?: () => void;
+  infoIndicatorActive?: boolean;
   splitViewItems?: SplitViewItem[];
   commandItems?: CommandMenuItem[];
   children: React.ReactNode;
@@ -175,6 +181,10 @@ export function AppShell({
   hideSplitViewToggle = false,
   hideAuthControls = false,
   minimalHeader = false,
+  canGoBack = false,
+  onGoBack,
+  onOpenInfoModal,
+  infoIndicatorActive = false,
   splitViewItems,
   commandItems,
   children,
@@ -304,256 +314,279 @@ export function AppShell({
       <main
         className="w-full min-h-dvh transition-[padding-inline-start,padding-inline-end] duration-300 ease-out pt-[calc(12px+var(--safe-top,0px))] pb-[calc(var(--tabbar-height)+var(--safe-bottom,0px)+32px)] ps-[calc(16px+var(--safe-left,0px))] pe-[calc(16px+var(--safe-right,0px))] sm:ps-[calc(24px+var(--safe-left,0px))] sm:pe-[calc(24px+var(--safe-right,0px))] md:ps-[calc(var(--active-sidebar-width)+28px+var(--safe-left,0px))] md:pe-[calc(24px+var(--safe-right,0px))]"
       >
-        {/* 2A. Desktop/Tablet (>= md) Unified Top Workspace App Bar (Strong Curvature rounded-3xl) */}
-        <header className="hidden md:flex sticky top-[calc(12px+var(--safe-top,0px))] z-20 liquid-glass rounded-3xl px-4 py-2.5 items-center justify-between gap-3 transition-all duration-300 ease-out mb-5 shadow-sm">
-          <div className="flex items-center gap-3 min-w-0 shrink">
-            {/* Leading Sidebar Collapse/Expand Toggle Button per Requirement 1 */}
-            <button
-              type="button"
-              onClick={() => {
-                triggerHaptic("light");
-                setIsSidebarCollapsed((prev) => !prev);
-              }}
-              aria-label={
-                isSidebarCollapsed
-                  ? "사이드바 전체 확장 모드로 전환"
-                  : "사이드바 미니 아이콘 모드로 접기"
-              }
-              className="btn btn-sm btn-ghost btn-square rounded-2xl pst-press border border-base-content/20 text-base-content shrink-0"
-            >
-              <IconSidebarLeft
-                className={`w-4 h-4 transition-transform duration-300 ${
-                  isSidebarCollapsed ? "rotate-180" : ""
-                }`}
-              />
-            </button>
+        {minimalHeader ? (
+          /* Minimal Non-Sticky Utility Row: scrolls out of view naturally (Back + Dark Mode + Info modal) */
+          <div className="max-w-4xl mx-auto flex items-center justify-between gap-2 pt-1 pb-2">
+            <h1 className="sr-only">
+              {currentSection.title} — {title}
+            </h1>
 
             <button
               type="button"
+              disabled={!canGoBack}
+              aria-disabled={!canGoBack}
               onClick={() => {
-                triggerHaptic("selection");
-                onSelectSection(defaultHomeSection);
-                if (typeof window !== "undefined") {
-                  window.scrollTo({ top: 0, behavior: "smooth" });
-                }
+                if (!canGoBack) return;
+                triggerHaptic("light");
+                onGoBack?.();
               }}
-              className="text-start flex flex-col justify-center min-w-0 cursor-pointer pst-press group focus-visible:outline-2 focus-visible:outline-primary rounded-xl p-1 -m-1"
-              title={`${currentSection.title} - 메인으로 이동`}
-              aria-label={`${currentSection.title} - 메인으로 이동 및 맨 위로 스크롤`}
+              aria-label="이전 페이지로 돌아가기"
+              title={canGoBack ? "이전 페이지로 돌아가기" : "이전 페이지 없음"}
+              className={`min-w-11 min-h-11 rounded-2xl inline-flex items-center justify-center transition-colors ${
+                canGoBack
+                  ? "border border-base-content/12 bg-base-100/70 hover:bg-base-100 text-base-content pst-press cursor-pointer"
+                  : "border border-base-content/8 bg-base-100/30 text-base-content/30 cursor-not-allowed"
+              }`}
             >
-              <div className="flex items-center gap-2 min-w-0">
-                {!minimalHeader && (
-                  <span
-                    className="h-2.5 w-2.5 rounded-full shrink-0 group-hover:scale-125 transition-transform"
-                    style={{ background: "var(--gradient-brand)" }}
-                    aria-hidden="true"
+              <IconChevronLeft className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => toggleTheme(theme !== "dark")}
+                aria-label={
+                  theme === "dark"
+                    ? "라이트 모드로 전환"
+                    : "다크 모드로 전환"
+                }
+                title={theme === "dark" ? "라이트 모드" : "다크 모드"}
+                className="min-w-11 min-h-11 rounded-2xl inline-flex items-center justify-center border border-base-content/12 bg-base-100/70 hover:bg-base-100 text-base-content transition-colors pst-press cursor-pointer"
+              >
+                {theme === "dark" ? (
+                  <IconSun className="w-4 h-4" />
+                ) : (
+                  <IconMoon className="w-4 h-4" />
+                )}
+              </button>
+
+              {onOpenInfoModal && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic("selection");
+                    onOpenInfoModal();
+                  }}
+                  aria-label="실시간 정보 및 앱 설정 모달 열기"
+                  title="정보 및 설정"
+                  className="relative min-w-11 min-h-11 rounded-2xl inline-flex items-center justify-center border border-base-content/12 bg-base-100/70 hover:bg-base-100 text-base-content transition-colors pst-press cursor-pointer"
+                >
+                  <IconInfoCircle className="w-4 h-4" />
+                  {infoIndicatorActive && (
+                    <span
+                      className="absolute top-2.5 end-2.5 w-1.5 h-1.5 rounded-full bg-primary animate-pulse"
+                      aria-hidden="true"
+                    />
+                  )}
+                </button>
+              )}
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* 2A. Desktop/Tablet (>= md) Unified Top Workspace App Bar */}
+            <header className="hidden md:flex sticky top-[calc(12px+var(--safe-top,0px))] z-20 liquid-glass rounded-3xl px-4 py-2.5 items-center justify-between gap-3 transition-all duration-300 ease-out mb-5 shadow-sm">
+              <div className="flex items-center gap-3 min-w-0 shrink">
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic("light");
+                    setIsSidebarCollapsed((prev) => !prev);
+                  }}
+                  aria-label={
+                    isSidebarCollapsed
+                      ? "사이드바 전체 확장 모드로 전환"
+                      : "사이드바 미니 아이콘 모드로 접기"
+                  }
+                  className="btn btn-sm btn-ghost btn-square rounded-2xl pst-press border border-base-content/20 text-base-content shrink-0"
+                >
+                  <IconSidebarLeft
+                    className={`w-4 h-4 transition-transform duration-300 ${
+                      isSidebarCollapsed ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic("selection");
+                    onSelectSection(defaultHomeSection);
+                    if (typeof window !== "undefined") {
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }
+                  }}
+                  className="text-start flex flex-col justify-center min-w-0 cursor-pointer pst-press group focus-visible:outline-2 focus-visible:outline-primary rounded-xl p-1 -m-1"
+                  title={`${currentSection.title} - 메인으로 이동`}
+                  aria-label={`${currentSection.title} - 메인으로 이동 및 맨 위로 스크롤`}
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span
+                      className="h-2.5 w-2.5 rounded-full shrink-0 group-hover:scale-125 transition-transform"
+                      style={{ background: "var(--gradient-brand)" }}
+                      aria-hidden="true"
+                    />
+                    <h1 className="text-base font-bold tracking-tight text-base-content group-hover:text-primary transition-colors truncate">
+                      {currentSection.title}
+                    </h1>
+                    <Badge variant="primary" size="xs">
+                      {currentSection.badge}
+                    </Badge>
+                  </div>
+                  <p
+                    className="text-xs font-medium truncate ps-4.5"
+                    style={{ color: "var(--label-secondary)" }}
+                  >
+                    {currentSection.description ?? subtitle}
+                  </p>
+                </button>
+              </div>
+
+              {headerCenterSlot && (
+                <div className="hidden xl:flex items-center justify-center min-w-0 shrink">
+                  {headerCenterSlot}
+                </div>
+              )}
+
+              <div className="flex items-center gap-2 shrink-0">
+                {headerRightExtraSlot}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic("selection");
+                    setIsCommandMenuOpen(true);
+                  }}
+                  className="pst-press cursor-pointer hidden lg:inline-flex items-center"
+                  aria-label="빠른 이동 커맨드 메뉴 (⌘K)"
+                >
+                  <KBD keys={["⌘", "K"]} size="xs" />
+                </button>
+
+                {!hideSplitViewToggle && (
+                  <ToggleButton
+                    label="보조 열"
+                    icon={<IconSplitView className="w-4 h-4" />}
+                    active={showSplitView}
+                    onToggle={setShowSplitView}
                   />
                 )}
-                <h1 className="text-base font-bold tracking-tight text-base-content group-hover:text-primary transition-colors truncate">
+
+                <ToggleButton
+                  label="다크"
+                  icon={
+                    theme === "dark" ? (
+                      <IconMoon className="w-4 h-4" />
+                    ) : (
+                      <IconSun className="w-4 h-4" />
+                    )
+                  }
+                  active={theme === "dark"}
+                  onToggle={toggleTheme}
+                />
+
+                {!hideAuthControls &&
+                  (user ? (
+                    <div className="flex items-center gap-2">
+                      <span className="badge badge-sm badge-soft badge-success font-semibold py-2.5 px-3 inline-flex items-center gap-1 rounded-full">
+                        <IconCheckCircle className="w-3.5 h-3.5 shrink-0" />
+                        <span>{user.displayName || user.email}</span>
+                      </span>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={handleSignOutConfirm}
+                      >
+                        로그아웃…
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="primary"
+                      opensModal
+                      leadingIcon={<IconUser className="w-4 h-4" />}
+                      onClick={openAuthModal}
+                    >
+                      로그인
+                    </Button>
+                  ))}
+              </div>
+            </header>
+
+            {/* 2B. Mobile (< md) Stable Fixed-Height App Bar */}
+            <header className="md:hidden sticky top-[calc(8px+var(--safe-top,0px))] z-20 liquid-glass rounded-3xl px-3.5 py-2 flex items-center justify-between gap-2 mb-4 shadow-sm transition-all duration-300">
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic("selection");
+                  onSelectSection(defaultHomeSection);
+                  if (typeof window !== "undefined") {
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }
+                }}
+                title={`${currentSection.title} - 홈으로 이동`}
+                aria-label={`${currentSection.title} - 메인으로 이동 및 맨 위로 스크롤`}
+                className="text-start flex-1 min-w-0 cursor-pointer pst-press rounded-xl focus-visible:outline-2 focus-visible:outline-primary p-1 -m-1 flex items-center gap-2"
+              >
+                <IconLogoATRC className="w-6 h-6 shrink-0 rounded-lg shadow-xs" />
+                <h1 className="font-bold tracking-tight text-base-content text-sm sm:text-base truncate leading-tight">
                   {currentSection.title}
                 </h1>
-                {!minimalHeader && (
-                  <Badge variant="primary" size="xs">
-                    {currentSection.badge}
-                  </Badge>
-                )}
+                <span className="badge badge-xs badge-primary font-semibold shrink-0 rounded-full">
+                  {currentSection.badge}
+                </span>
+              </button>
+
+              <div className="flex items-center gap-1.5 shrink-0">
+                {mobileRightExtraSlot}
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic("selection");
+                    setIsCommandMenuOpen(true);
+                  }}
+                  className="hidden sm:inline-flex items-center btn btn-ghost btn-circle btn-xs rounded-xl pst-press text-base-content"
+                  aria-label="⌘K 커맨드 메뉴 열기"
+                >
+                  <KBD keys={["⌘K"]} size="xs" />
+                </button>
+                <ToggleButton
+                  label="다크"
+                  icon={
+                    theme === "dark" ? (
+                      <IconMoon className="w-4 h-4" />
+                    ) : (
+                      <IconSun className="w-4 h-4" />
+                    )
+                  }
+                  active={theme === "dark"}
+                  onToggle={toggleTheme}
+                />
+                {!hideAuthControls &&
+                  (user ? (
+                    <Button
+                      size="xs"
+                      variant="soft"
+                      onClick={handleSignOutConfirm}
+                    >
+                      로그아웃…
+                    </Button>
+                  ) : (
+                    <Button
+                      size="xs"
+                      variant="primary"
+                      opensModal
+                      leadingIcon={<IconUser className="w-3.5 h-3.5" />}
+                      onClick={openAuthModal}
+                    >
+                      로그인
+                    </Button>
+                  ))}
               </div>
-              {!minimalHeader && (
-                <p
-                  className="text-xs font-medium truncate ps-4.5"
-                  style={{ color: "var(--label-secondary)" }}
-                >
-                  {currentSection.description ?? subtitle}
-                </p>
-              )}
-            </button>
-          </div>
-
-          {/* Optional Center Command Bar Slot (e.g. Live API & Tibo Limit Reset Ticker) */}
-          {headerCenterSlot && (
-            <div className="hidden xl:flex items-center justify-center min-w-0 shrink">
-              {headerCenterSlot}
-            </div>
-          )}
-
-          {/* Trailing Workspace Controls */}
-          <div className="flex items-center gap-2 shrink-0">
-            {headerRightExtraSlot}
-
-            <button
-              type="button"
-              onClick={() => {
-                triggerHaptic("selection");
-                setIsCommandMenuOpen(true);
-              }}
-              className="pst-press cursor-pointer hidden lg:inline-flex items-center"
-              aria-label="빠른 이동 커맨드 메뉴 (⌘K)"
-            >
-              <KBD keys={["⌘", "K"]} size="xs" />
-            </button>
-
-            {!hideSplitViewToggle && (
-              <ToggleButton
-                label="보조 열"
-                icon={<IconSplitView className="w-4 h-4" />}
-                active={showSplitView}
-                onToggle={setShowSplitView}
-              />
-            )}
-
-            {minimalHeader ? (
-              <button
-                type="button"
-                onClick={() => toggleTheme(theme !== "dark")}
-                aria-label={
-                  theme === "dark"
-                    ? "라이트 모드로 전환"
-                    : "다크 모드로 전환"
-                }
-                className="min-w-11 min-h-11 rounded-2xl inline-flex items-center justify-center border border-base-content/12 bg-base-100/70 hover:bg-base-100 text-base-content transition-colors pst-press"
-              >
-                {theme === "dark" ? (
-                  <IconSun className="w-4 h-4" />
-                ) : (
-                  <IconMoon className="w-4 h-4" />
-                )}
-              </button>
-            ) : (
-              <ToggleButton
-                label="다크"
-                icon={
-                  theme === "dark" ? (
-                    <IconMoon className="w-4 h-4" />
-                  ) : (
-                    <IconSun className="w-4 h-4" />
-                  )
-                }
-                active={theme === "dark"}
-                onToggle={toggleTheme}
-              />
-            )}
-
-            {!hideAuthControls &&
-              (user ? (
-                <div className="flex items-center gap-2">
-                  <span className="badge badge-sm badge-soft badge-success font-semibold py-2.5 px-3 inline-flex items-center gap-1 rounded-full">
-                    <IconCheckCircle className="w-3.5 h-3.5 shrink-0" />
-                    <span>{user.displayName || user.email}</span>
-                  </span>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={handleSignOutConfirm}
-                  >
-                    로그아웃…
-                  </Button>
-                </div>
-              ) : (
-                <Button
-                  size="sm"
-                  variant="primary"
-                  opensModal
-                  leadingIcon={<IconUser className="w-4 h-4" />}
-                  onClick={openAuthModal}
-                >
-                  로그인
-                </Button>
-              ))}
-          </div>
-        </header>
-
-        {/* 2B. Mobile (< md) Stable Fixed-Height App Bar per Requirement 4 (Zero CLS, Zero Jittering) */}
-        <header className="md:hidden sticky top-[calc(8px+var(--safe-top,0px))] z-20 liquid-glass rounded-3xl px-3.5 py-2 flex items-center justify-between gap-2 mb-4 shadow-sm transition-all duration-300">
-          <button
-            type="button"
-            onClick={() => {
-              triggerHaptic("selection");
-              onSelectSection(defaultHomeSection);
-              if (typeof window !== "undefined") {
-                window.scrollTo({ top: 0, behavior: "smooth" });
-              }
-            }}
-            title={`${currentSection.title} - 홈으로 이동`}
-            aria-label={`${currentSection.title} - 메인으로 이동 및 맨 위로 스크롤`}
-            className="text-start flex-1 min-w-0 cursor-pointer pst-press rounded-xl focus-visible:outline-2 focus-visible:outline-primary p-1 -m-1 flex items-center gap-2"
-          >
-            <IconLogoATRC className="w-6 h-6 shrink-0 rounded-lg shadow-xs" />
-            <h1 className="font-bold tracking-tight text-base-content text-sm sm:text-base truncate leading-tight">
-              {currentSection.title}
-            </h1>
-            {!minimalHeader && (
-              <span className="badge badge-xs badge-primary font-semibold shrink-0 rounded-full">
-                {currentSection.badge}
-              </span>
-            )}
-          </button>
-
-          <div className="flex items-center gap-1.5 shrink-0">
-            {mobileRightExtraSlot}
-            <button
-              type="button"
-              onClick={() => {
-                triggerHaptic("selection");
-                setIsCommandMenuOpen(true);
-              }}
-              className="hidden sm:inline-flex items-center btn btn-ghost btn-circle btn-xs rounded-xl pst-press text-base-content"
-              aria-label="⌘K 커맨드 메뉴 열기"
-            >
-              <KBD keys={["⌘K"]} size="xs" />
-            </button>
-            {minimalHeader ? (
-              <button
-                type="button"
-                onClick={() => toggleTheme(theme !== "dark")}
-                aria-label={
-                  theme === "dark"
-                    ? "라이트 모드로 전환"
-                    : "다크 모드로 전환"
-                }
-                className="min-w-11 min-h-11 rounded-2xl inline-flex items-center justify-center border border-base-content/12 bg-base-100/70 hover:bg-base-100 text-base-content transition-colors pst-press"
-              >
-                {theme === "dark" ? (
-                  <IconSun className="w-4 h-4" />
-                ) : (
-                  <IconMoon className="w-4 h-4" />
-                )}
-              </button>
-            ) : (
-              <ToggleButton
-                label="다크"
-                icon={
-                  theme === "dark" ? (
-                    <IconMoon className="w-4 h-4" />
-                  ) : (
-                    <IconSun className="w-4 h-4" />
-                  )
-                }
-                active={theme === "dark"}
-                onToggle={toggleTheme}
-              />
-            )}
-            {!hideAuthControls &&
-              (user ? (
-                <Button
-                  size="xs"
-                  variant="soft"
-                  onClick={handleSignOutConfirm}
-                >
-                  로그아웃…
-                </Button>
-              ) : (
-                <Button
-                  size="xs"
-                  variant="primary"
-                  opensModal
-                  leadingIcon={<IconUser className="w-3.5 h-3.5" />}
-                  onClick={openAuthModal}
-                >
-                  로그인
-                </Button>
-              ))}
-          </div>
-        </header>
+            </header>
+          </>
+        )}
 
         {/* 2C. Optional Split View (Secondary List Column on Tablet/PC) */}
         <div
