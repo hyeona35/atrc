@@ -232,145 +232,116 @@ export function HeroMultiClock({
   return (
     <section
       aria-labelledby="horizon-timepiece-heading"
-      className="pt-1 pb-10 border-b border-base-content/10 space-y-7"
+      className="pt-2 pb-10 border-b border-base-content/10 space-y-7"
     >
-      {/* Prominent Focal Arrival Prediction Card */}
-      <div className="rounded-3xl material-regular border border-primary/20 p-5 sm:p-7 space-y-6">
-        {/* Top Row: Clean Milestone Title + 3-Way Scenario Toggle */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <span className="px-2.5 py-1 rounded-xl bg-primary/14 text-accent-primary font-mono text-xs font-extrabold shrink-0">
-              {selectedClock.shortCode}
-            </span>
-            <h2
-              id="horizon-timepiece-heading"
-              className="text-base sm:text-lg font-extrabold tracking-tight text-base-content truncate"
-            >
-              {selectedClock.koreanTitle}
-            </h2>
-          </div>
-
-          <div
-            role="group"
-            aria-label="예측 시나리오 전환"
-            className="inline-flex flex-wrap items-center p-1 rounded-2xl bg-base-200/80 border border-base-content/10 self-start sm:self-auto"
-          >
-            {(
-              [
-                { id: "fast-rsi", label: "선행 RSI 가속" },
-                { id: "baseline", label: "기본 추세" },
-                { id: "safety-buffer", label: "안전 완충" },
-              ] as const
-            ).map((opt) => {
-              const active = scenario === opt.id;
-              return (
-                <button
-                  key={opt.id}
-                  type="button"
-                  onClick={() => {
-                    triggerHaptic("selection");
-                    setScenario(opt.id);
-                  }}
-                  aria-pressed={active}
-                  className={`min-h-10 px-3 rounded-xl text-xs font-semibold transition-colors pst-press cursor-pointer ${
-                    active
-                      ? "bg-base-100 text-base-content shadow-xs"
-                      : "text-base-content/65 hover:text-base-content"
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Hero Arrival Period Display: Giant Target Year/Month + Bold D-Day + Segmented Countdown */}
-        <div className="space-y-4">
-          <div className="flex flex-wrap items-center gap-3 sm:gap-4">
-            <p className="text-5xl sm:text-7xl font-black tracking-tight tabular-nums leading-none bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-              {formatKoreanYearMonth(activeTargetMs)}
-            </p>
-            <span className="inline-flex items-center px-3.5 py-1.5 rounded-2xl bg-primary text-primary-content font-mono text-sm sm:text-base font-extrabold tabular-nums shadow-xs">
-              D-{countdown.days.toLocaleString("ko-KR")}
-            </span>
-            {isCustomModified && (
-              <span className="inline-flex items-center px-2.5 py-1 rounded-xl bg-secondary/15 text-secondary font-mono text-xs font-bold">
-                What-If 적용 중
-              </span>
-            )}
-          </div>
-
-          {/* Live Segmented Countdown Tiles */}
-          <div className="grid grid-cols-4 gap-2 sm:gap-3 max-w-md font-mono tabular-nums">
-            {[
-              { value: countdown.days.toLocaleString("ko-KR"), unit: "일" },
-              { value: countdown.hours, unit: "시간" },
-              { value: countdown.minutes, unit: "분" },
-              { value: countdown.seconds, unit: "초" },
-            ].map((cell) => (
-              <div
-                key={cell.unit}
-                className="px-3 py-2.5 rounded-2xl bg-base-200/65 border border-base-content/10 text-center"
-              >
-                <p className="text-lg sm:text-2xl font-extrabold text-base-content leading-tight">
-                  {cell.value}
-                </p>
-                <p
-                  className="text-[11px] font-sans font-semibold mt-0.5"
-                  style={{ color: "var(--label-secondary)" }}
-                >
-                  {cell.unit}
-                </p>
-              </div>
-            ))}
-          </div>
-
-          <p
-            className="text-sm leading-relaxed max-w-2xl"
-            style={{ color: "var(--label-secondary)" }}
-          >
-            {selectedClock.definition}
+      {/* Editorial Header Row: quiet milestone title + underline scenario tabs (no boxes, no badges) */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-4 border-b border-base-content/10">
+        <div className="space-y-1">
+          <p className="text-xs font-mono tracking-wider uppercase text-base-content/50">
+            {selectedClock.shortCode}
+            {isCustomModified ? " · 커스텀 가정" : ""}
           </p>
+          <h2
+            id="horizon-timepiece-heading"
+            className="text-lg sm:text-xl font-bold tracking-tight text-base-content"
+          >
+            {selectedClock.koreanTitle}
+          </h2>
         </div>
 
-        {/* 3-Scenario Instant Comparison Strip */}
-        <div className="grid grid-cols-3 gap-2 pt-2 border-t border-base-content/10">
+        <div
+          role="group"
+          aria-label="예측 시나리오 전환"
+          className="flex items-center gap-5 sm:gap-6"
+        >
           {(
             [
               { id: "fast-rsi", label: "선행 가속", ms: fastTargetMs },
-              { id: "baseline", label: "기본 예측", ms: baselineTargetMs },
+              { id: "baseline", label: "기본 추세", ms: baselineTargetMs },
               { id: "safety-buffer", label: "안전 완충", ms: safetyTargetMs },
             ] as const
-          ).map((item) => {
-            const active = scenario === item.id;
+          ).map((opt) => {
+            const active = scenario === opt.id;
             return (
               <button
-                key={item.id}
+                key={opt.id}
                 type="button"
                 onClick={() => {
                   triggerHaptic("selection");
-                  setScenario(item.id);
+                  setScenario(opt.id);
                 }}
-                className={`p-2.5 sm:p-3 rounded-2xl text-start transition-colors pst-press cursor-pointer border ${
+                aria-pressed={active}
+                className={`min-h-11 pb-2 -mb-[17px] text-start transition-colors cursor-pointer border-b-2 ${
                   active
-                    ? "bg-primary/10 border-primary/40"
-                    : "bg-base-200/40 border-base-content/8 hover:border-base-content/20"
+                    ? "border-primary text-base-content"
+                    : "border-transparent text-base-content/45 hover:text-base-content/80"
                 }`}
               >
-                <p
-                  className="text-[11px] font-semibold"
-                  style={{ color: active ? "var(--accent-primary-text)" : "var(--label-secondary)" }}
-                >
-                  {item.label}
-                </p>
-                <p className="text-sm sm:text-base font-extrabold font-mono tabular-nums text-base-content mt-0.5">
-                  {formatShortYearMonth(item.ms)}
-                </p>
+                <span className="block text-[11px] font-medium">
+                  {opt.label}
+                </span>
+                <span className="block text-xs sm:text-sm font-mono font-bold tabular-nums">
+                  {formatShortYearMonth(opt.ms)}
+                </span>
               </button>
             );
           })}
         </div>
+      </div>
+
+      {/* Focal Arrival Period & Open Typographic Live Countdown (no gradients, no boxes, no badges) */}
+      <div className="py-1 sm:py-2 space-y-5">
+        <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1.5">
+          <p className="text-5xl sm:text-7xl font-black tracking-[-0.04em] text-base-content tabular-nums leading-none">
+            {formatKoreanYearMonth(activeTargetMs)}
+          </p>
+          <span className="text-xl sm:text-2xl font-mono font-bold tabular-nums text-primary">
+            D-{countdown.days.toLocaleString("ko-KR")}
+          </span>
+        </div>
+
+        {/* Hairline-Separated Live Countdown Numerals */}
+        <div className="flex flex-wrap items-baseline gap-y-2 font-mono tabular-nums text-base-content">
+          <div className="pe-4 sm:pe-6 border-e border-base-content/12">
+            <span className="text-2xl sm:text-3xl font-bold tracking-tight">
+              {countdown.days.toLocaleString("ko-KR")}
+            </span>
+            <span className="text-xs font-sans font-medium text-base-content/45 ms-1">
+              일
+            </span>
+          </div>
+          <div className="px-4 sm:px-6 border-e border-base-content/12">
+            <span className="text-2xl sm:text-3xl font-bold tracking-tight">
+              {countdown.hours}
+            </span>
+            <span className="text-xs font-sans font-medium text-base-content/45 ms-1">
+              시간
+            </span>
+          </div>
+          <div className="px-4 sm:px-6 border-e border-base-content/12">
+            <span className="text-2xl sm:text-3xl font-bold tracking-tight">
+              {countdown.minutes}
+            </span>
+            <span className="text-xs font-sans font-medium text-base-content/45 ms-1">
+              분
+            </span>
+          </div>
+          <div className="ps-4 sm:ps-6">
+            <span className="text-2xl sm:text-3xl font-bold tracking-tight text-base-content/70">
+              {countdown.seconds}
+            </span>
+            <span className="text-xs font-sans font-medium text-base-content/45 ms-1">
+              초
+            </span>
+          </div>
+        </div>
+
+        <p
+          className="text-sm leading-relaxed max-w-2xl"
+          style={{ color: "var(--label-secondary)" }}
+        >
+          {selectedClock.definition}
+        </p>
       </div>
 
       {/* Linear 2026 — 2033 Architectural Horizon Timeline */}
